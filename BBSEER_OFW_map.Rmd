@@ -1,0 +1,223 @@
+---
+title: "Biscayne Bay Southeastern Everglades Ecosystem Restoration"
+output: 
+  html_document: 
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# GIS libraries 
+library(rgdal)
+library(rgeos)
+library(raster)
+library(tmap)
+
+library(magrittr)
+library(flextable)
+
+nad83.pro=CRS("+init=epsg:4269")
+utm17=CRS("+proj=utm +zone=17 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+
+study.area=spTransform(readOGR("C:/Julian_LaCie/_GitHub/BBSEER_WQ/GIS","BBSEER_PRJBND_09092020"),utm17)
+ofw=spTransform(readOGR("C:/Julian_LaCie/_GitHub/BBSEER_WQ/GIS","bbseer_ofw"),utm17)
+estuary.nnc=spTransform(readOGR("C:/Julian_LaCie/_GitHub/BBSEER_WQ/GIS","bbseer_nnc"),utm17)
+
+tmap_mode("view")
+
+
+```
+
+
+### Study Area and OFWs
+
+Click the layer icon `r knitr::include_graphics('./resources/layer_icon.png')` to toggle study area and OFW shapefiles. 
+
+- Study Area shapefile provided by project management. **These boundaries are for planning purposes.**
+
+- Outstanding Florida Waters [shapefile](https://geodata.dep.state.fl.us/datasets/681b93ec295f4003abb5a97cd5b51173_0){target="_blank"}. **These boundaries are for planning purposes.**
+
+- Estuary Numeric Nutrient Criteria [shapefile](https://geodata.dep.state.fl.us/datasets/f60fe83e13bb4d6a924bc02f65288751_3){target="_blank"}.
+
+```{r map, out.width="100%",fig.align='center', echo=FALSE,warning=FALSE, message=FALSE}
+tm <- tm_basemap(leaflet::providers$Esri.WorldImagery,alpha=0.9)+
+tm_shape(study.area,name="Study Area")+tm_polygons(col="grey",alpha=0.5)+
+  tm_shape(estuary.nnc,name="NNC")+tm_polygons(col="dodgerblue1",alpha=0.5)+
+  tm_shape(ofw, name="Outstanding Florida Waters")+tm_polygons(col="indianred1",alpha=0.5,popup.vars=c("NAME"="NAME"))
+
+tm %>% 
+  tmap_leaflet() %>%
+  leaflet::hideGroup("Outstanding Florida Waters")%>%
+  leaflet::hideGroup("NNC")
+```
+
+<br>
+
+### Water Quality Standards
+
+<br>
+
+#### [62-302.530 FAC](https://www.flrules.org/gateway/RuleNo.asp?title=SURFACE%20WATER%20QUALITY%20STANDARDS&ID=62-302.530){target="_blank"}
+
+Surface Water Quality Criteria
+
+- (48)(b) In no case shall nutrient concentrations of a body of water be altered so as to cause an imbalance in natural populations of aquatic flora or fauna.
+
+- Numeric interpretations of the narrative nutrient criterion in paragraph 62-302.530(48)(b), F.A.C., shall be expressed as spatial averages and applied over a spatial area consistent with their derivation. In applying the water quality standards, the Department shall take into account the variability occurring in nature and shall recognize the statistical variability inherent in sampling and testing procedures.
+
+<br>
+
+#### [62-302.532 FAC](https://www.flrules.org/gateway/RuleNo.asp?title=SURFACE%20WATER%20QUALITY%20STANDARDS&ID=62-302.532){target="_blank"}
+
+Estuary-Specific Numeric Interpretations of the Narrative Nutrient Criterion
+
+```{r,echo=F}
+
+flbay.nnc.tab=data.frame(Estuary=c(rep("(f) Florida Bay",6)),
+                   Segement=c("1. Central Florida Bay","2. Coastal Lakes","3. East Centeral Florida Bay","4. Northern Florida Bay","5. Southern Florida Bay","6. Western Florida Bay"),
+                   TP=c(0.019,0.045,0.007,0.010,0.009,0.015),
+                   TN=c(0.99,1.29,0.65,0.68,0.64,0.37),
+                   Chla=c(2.2,9.3,0.4,0.8,0.8,1.4))
+keys.nnc.tab=data.frame(Estuary=c(rep("(g) Florida Keys",7)),
+                   Segement=c("1. Back Bay","2. Backshelf","3. Lower Keys","4. Marquesas","5. Middle Keys","6. Oceanside","7. Upper Keys"),
+                   TP=c(0.009,0.011,0.008,0.008,0.007,0.007,0.007),
+                   TN=c(0.25,0.23,0.21,0.21,0.22,0.17,0.18),
+                   Chla=c(0.3,0.7,0.3,0.6,0.3,0.3,0.2))
+BB.nnc.tab=data.frame(Estuary=c(rep("(h) Biscayne Bay",9)),
+                   Segement=c("1. Card Sound","2. Manatee Bay - Barnes Sound","3. North Central Inshore","4. North Central Outer-Bay","5. Northern North Bay","6. South Central Inshore", "7. South Central Mid-Bay","8. South Central Outer-Bay","9. Southern North Bay"),
+                   TP=c(0.008,0.007,0.007,0.008,0.012,0.007,0.007,0.006,0.010),
+                   TN=c(0.33,0.58,0.31,0.28,0.30,0.48,0.35,0.24,0.29),
+                   Chla=c(0.5,0.4,0.5,0.7,1.7,0.4,0.2,0.2,1.1))
+nnc.tab=rbind(flbay.nnc.tab,keys.nnc.tab,BB.nnc.tab)
+
+
+flextable(nnc.tab)%>%
+  merge_v(j=~Estuary)%>%
+  valign(j=1,valign="top")%>%
+  fix_border_issues()%>%
+  fontsize(size=14,part="header")%>%
+  bold(part="header")%>%
+  font(fontname = "serif",part="all")%>%
+  fontsize(size=12,part="body")%>%
+  align(j=1:2,align="left",part="all")%>%
+  align(j=3:5,align="center",part="all")%>%
+  set_header_labels("TP"="Total\nPhosphorus\n(mg L\u207B\u00B9)",
+                    "TN"="Total\nNitrogen\n(mg L\u207B\u00B9)",
+                    "Chla"="Chlorophyll-a\n(\u03BCg L\u207B\u00B9)")%>%
+  width(width=c(1.5,2.5,1,1,1.5))%>%
+  footnote(i=1,j=3:5,part="header",
+           value=as_paragraph(" Criteria expressed as annual geometric means (AGM) are not to be exceeded more than once in a three year period."),
+           ref_symbols = c(" A"))%>%
+  set_caption(caption="62-302.532(1) FAC. Estuary-Specific Numeric Interpretations of the Narrative Nutrient Criterion.")
+
+```
+
+### Outstanding Florida Waters
+
+#### [62-302.700 FAC](https://www.flrules.org/gateway/RuleNo.asp?title=SURFACE%20WATER%20QUALITY%20STANDARDS&ID=62-302.700){target="_blank"}
+
+Special Protection, Outstanding Florida Waters, Outstanding National Resource Waters
+
+- The policy of this section shall be implemented through the permitting process pursuant to Rule 62-4.242, F.A.C.
+
+- (8) For each Outstanding Florida Water listed under subsection 62-302.700(9), F.A.C., the last day of the baseline year for defining the existing ambient water quality (paragraph 62-4.242(2)(c), F.A.C.) is March 1, 1979, unless otherwise indicated. Where applicable, Outstanding Florida Water boundary expansions are indicated by date(s) following “as mod.” under subsection 62-302.700(9), F.A.C. For each Outstanding Florida Water boundary which expanded subsequent to the original date of designation, the baseline year for the entire Outstanding Florida Water, including the expansion, remains March 1, 1979, unless otherwise indicated.
+
+<br>
+
+```{r,echo=F}
+ofw.tab=data.frame(NAME=c("Biscayne National Park",
+                          "Everglades National Park",
+                          "East Everglades",
+                          "Miami Rockridge Pinelands",
+                          "John Pennekamp Coral Reef State Park",
+                          "North Key Largo Hammock",
+                          "Oleta River State Recreation Area",
+                          "Crocodile Lake National Wildlife Refuge",
+                          "Biscayne Bay AP (Cape Florida)",
+                          "Biscayne Bay AP (Card Sound)",
+                          "Florida Keys",
+                          "Deering Hammock/Estate",
+                          "ITT Hammock"
+),
+date=c("as mod. 5-14-86, 8-8-94",
+       "as mod. 8-8-94",
+       "5-14-86",
+       "8-8-94",
+       "as mod. 5-14-86, 4-19-88",
+       "5-14-86; as mod. 4-19-88, 10-4-90, 8-8-94",
+       "12-1-82",
+       "12-1-82; as mod. 5-14-86, 4-19-88, 8-8-94",
+       NA,
+       "12-1-82",
+       NA,
+       "5-14-86; as mod. 4-19-88, 8-8-94",
+       "5-14-86"))
+# BNP Outstanding National Resource Waters Boundary (10)(a)1
+# Florida keys identified as special waters (9)(i)13
+
+# knitr::kable(ofw.tab,format="html",full_width = F,col.names = c("OFW Name","Date"))%>%
+#   kable_styling(font_size=10)%>%
+#   footnote(
+#     general=c("Date as referenced in 62-302.700 FAC, no date indicates default baseline period (prior to March 1,1979)"),
+#     number=c("Biscayne National Park identified as Outstanding National Resource 62-302.700(10)(a)1 dated June 15,1989","Florida keys identified as special waters 62-302.700(9)(i)13 FAC"))
+
+flextable(ofw.tab)%>%
+  fontsize(size=14,part="header")%>%
+  bold(part="header")%>%
+  font(fontname = "serif",part="all")%>%
+  fontsize(size=11,part="body")%>%
+  colformat_char(2,na_str="---")%>%
+  align(align="left",part="all")%>%
+  set_header_labels("NAME"="Name","date"="Date")%>%
+  width(width=c(3,3))%>%
+  footnote(i=1,j=2,part="header",
+           value=as_paragraph(" Date as referenced in 62-302.700 FAC, no date indicates default baseline period (prior to March 1,1979)"),
+           ref_symbols = c(" 1"))%>%
+  #footnote(i=1,j=1,part="body",
+  #         value=as_paragraph("Biscayne National Park identified as Outstanding National Resource 62-302.700(10)(a)1 dated June 15,1989"),
+  #         ref_symbols = c(" a"))%>%
+  footnote(i=11,j=1,part="body",
+           value=as_paragraph("Florida keys identified as special waters 62-302.700(9)(i)13 FAC"),
+           ref_symbols = c(" b"))%>%
+  set_caption(caption="62-302.700 FAC. Outstanding Florida Waters.")
+
+```
+
+<br>
+
+#### [62-4.242(2) FAC](https://www.flrules.org/gateway/ruleno.asp?id=62-4.242){target="_blank"}
+
+Antidegradation Permitting Requirements; Outstanding Florida Waters; Outstanding National Resource Waters
+
+- (a) *“No Department permit or water quality certification shall be issued for any proposed activity or discharge within an Outstanding Florida Waters, or which significantly degrades, either alone or in combination with other stationary installations…”*
+
+>Stated otherwise, if an upstream discharge ultimately flows into a downstream OFW (i.e., the discharge to the OFW is indirect), then the upstream discharge cannot significantly degrade the OFW.  Because no proposed project is expected to constitute a direct discharge into an OFW or to significantly degrade an OFW, any additional OFW requirements are unlikely to apply.
+
+
+<!--
+- (c) *“For the purpose of this section the term “existing ambient water quality” shall mean (based on the best scientific information available) the better water quality of either (1) that <mark>which could reasonably be expected to have existed for the baseline year</mark> of an Outstanding Florida Water designation or (2) that which existed during the <mark>year prior to the date of a permit application</mark>. It shall include daily, seasonal, and other cyclic fluctuations, taking into consideration the effects of allowable discharges for which Department permits were issued or applications for such permits were filed and complete on the effective date of designation.”*
+
+
+
+***
+
+### Additional Information
+
+Outstanding Florida Waters [fact sheet](https://floridadep.gov/dear/water-quality-standards/content/outstanding-florida-waters){target="_blank"}.
+
+ - [pdf factsheet](https://floridadep.gov/sites/default/files/OFW%20factsheet_0.pdf){target="_blank"}
+ 
+Numeric Nutrient Criteria [fact sheet](https://floridadep.gov/dear/water-quality-standards/content/numeric-nutrient-criteria-development){target="_blank"}
+
+ - Implementation of Florida'a Numeric Nutrient Standards [Tech Support Doc](https://floridadep.gov/sites/default/files/NNC_Implementation.pdf){target="_blank"}
+
+--->
+
+***
+ 
+```{r ,out.width="15%",fig.align="center",echo=F}
+knitr::include_graphics("https://floridadep.gov/system/files/styles/general_page_images__scaled_to_900_pixels_/private/media-folders/media-root/in-house-graphic-DEP%20Logo%20color%20Large.png?itok=wm1GoIhx")
+```
