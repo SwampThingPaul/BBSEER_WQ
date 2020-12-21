@@ -398,12 +398,91 @@ TP.annual=merge(TP.annual,wq.nnc,"WQSite")
 plot(TP.FWM~TP.GM.flow,TP.annual);abline(0,1)
 plot(TP.FWM~TP.GM.all,TP.annual);abline(0,1)
 
+TP.annual2=TP.annual
+TP.annual2$Date=date.fun(paste0(TP.annual2$WY-1,"-05-01"))
+TP.annual3=TP.annual
+TP.annual3$Date=date.fun(paste0(TP.annual3$WY,"-04-30"))
+TP.annual2=rbind(TP.annual2,TP.annual3)
+TP.annual2=TP.annual2[order(TP.annual2$WQSite,TP.annual2$Date),]
+
 TN.annual=ddply(merge(flow.wq,TN.samp.size,c("WQSite","WY")),c("WQSite","WY","sea.screen"),summarise,
                 TN.GM.flow=exp(mean(log(TN.flow),na.rm=T)),
                 TN.GM.all=exp(mean(log(TN),na.rm=T)),
                 TN.FWM=wtd.mean(TN,TFlow.cfs,na.rm=T),N.val=N.obs(TN),N.flow.val=N.obs(ifelse(TFlow.cfs==0|is.na(TFlow.cfs)==T,NA,TN)))
 TN.annual=merge(TN.annual,wq.nnc,"WQSite")
 
+TN.annual2=TN.annual
+TN.annual2$Date=date.fun(paste0(TN.annual2$WY-1,"-05-01"))
+TN.annual3=TN.annual
+TN.annual3$Date=date.fun(paste0(TN.annual3$WY,"-04-30"))
+TN.annual2=rbind(TN.annual2,TN.annual3)
+TN.annual2=TN.annual2[order(TN.annual2$WQSite,TN.annual2$Date),]
+# -------------------------------------------------------------------------
+
+# png(filename=paste0(plot.path,"TPData.png"),width=6.5,height=5,units="in",res=200,type="windows",bg="white")
+par(family="serif",mar=c(2,2,1,0.5),oma=c(2.5,2.5,0.25,0.5));
+layout(matrix(1:12,3,4))
+
+xlim.val=dates;xmaj=seq(xlim.val[1],xlim.val[2],"10 years");xmin=seq(xlim.val[1],xlim.val[2],"1 years")
+ylim.val=c(0.5,250);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")# by.y=50;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/2)
+for(i in 1:nrow(wq.nnc)){
+  
+  tmp=subset(TP.annual,WQSite==as.character(wq.nnc$WQSite[i]))
+  plot(TP~Date.EST,dat.xtab,ylim=ylim.val,xlim=xlim.val,ann=F,axes=F,type="n",log="y")
+  abline(h=ymaj,v=xmaj,lty=3,col="grey")  
+  with(subset(dat.xtab,Station.ID==as.character(wq.nnc$WQSite[i])),pt_line(Date.EST,TP,2,"dodgerblue1",1,21,"dodgerblue1"))
+  # for(j in 1:nrow(tmp)){
+  #   xx=date.fun(with(tmp[j,],c(paste0(WY-1,"-05-01"),paste0(WY,"-04-30"))))
+  #   yy=rep(tmp[j,"TP.FWM"],2)
+  #   lines(xx,yy,col="red",lwd=1.75)
+  # }
+  with(subset(TP.annual2,WQSite==as.character(wq.nnc$WQSite[i])),lines(Date,TP.FWM,col="red",lwd=2))
+  axis_fun(1,xmaj,xmin,format(xmaj,"%m-%Y"),line=-0.5,cex=0.8)
+  axis_fun(2,ymaj,ymin,ymaj);box(lwd=1)
+  mtext(side=3,adj=0,as.character(wq.nnc$WQSite[i]))
+  
+}
+plot(0:1,0:1,ann=F,axes=F,type="n")
+legend(0.5,0.5,legend=c("Individual Grab Samples","Annual FWM"),
+       pch=c(21,NA),
+       lty=c(NA,1),
+       lwd=c(0.01,1),
+       col=c("black","red"),
+       pt.bg=c("dodgerblue1",NA),
+       pt.cex=1,ncol=1,cex=1,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5) 
+mtext(side=1,outer=T,"Date (Month-Year)")
+mtext(side=2,line=0.5,outer=T,"TP (\u03BCg L\u207B\u00B9)")
+dev.off()
+shell.exec(paste0(plot.path,"TPData.png"))
+
+# png(filename=paste0(plot.path,"TNData.png"),width=6.5,height=5,units="in",res=200,type="windows",bg="white")
+par(family="serif",mar=c(2,2,1,0.5),oma=c(2.5,2.5,0.25,0.5));
+layout(matrix(1:12,3,4))
+
+xlim.val=dates;xmaj=seq(xlim.val[1],xlim.val[2],"10 years");xmin=seq(xlim.val[1],xlim.val[2],"1 years")
+ylim.val=c(0.05,5);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")# by.y=50;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/2)
+for(i in 1:nrow(wq.nnc)){
+  plot(TN~Date.EST,dat.xtab,ylim=ylim.val,xlim=xlim.val,ann=F,axes=F,type="n",log="y")
+  abline(h=ymaj,v=xmaj,lty=3,col="grey")  
+  with(subset(dat.xtab,Station.ID==as.character(wq.nnc$WQSite[i])),pt_line(Date.EST,TN,2,"indianred1",1,21,"indianred1"))
+  with(subset(TN.annual2,WQSite==as.character(wq.nnc$WQSite[i])),lines(Date,TN.FWM,col="dodgerblue1",lwd=2))
+  axis_fun(1,xmaj,xmin,format(xmaj,"%m-%Y"),line=-0.5,cex=0.8)
+  axis_fun(2,ymaj,ymin,format(ymaj));box(lwd=1)
+  mtext(side=3,adj=0,as.character(wq.nnc$WQSite[i]))
+  
+}
+plot(0:1,0:1,ann=F,axes=F,type="n")
+legend(0.5,0.5,legend=c("Individual Grab Samples","Annual FWM"),
+       pch=c(21,NA),
+       lty=c(NA,1),
+       lwd=c(0.01,1),
+       col=c("black","dodgerblue1"),
+       pt.bg=c("indianred1",NA),
+       pt.cex=1,ncol=1,cex=1,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5) 
+mtext(side=1,outer=T,"Date (Month-Year)")
+mtext(side=2,line=0.75,outer=T,"TN (mg L\u207B\u00B9)")
+dev.off()
+shell.exec(paste0(plot.path,"TNData.png"))
 
 # NNC Rescale -------------------------------------------------------------
 
@@ -1006,8 +1085,8 @@ legend("topleft",legend=c("Annual Value","Overall Mean Value","1:1 Line"),
        pt.bg=c("grey","dodgerblue1",NA),
        pt.cex=1,ncol=1,cex=0.6,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
 
-xlim.val=c(0,0.4);by.x=0.1;xmaj=seq(xlim.val[1],xlim.val[2],by.x);xmin=seq(xlim.val[1],xlim.val[2],by.x/2)
-ylim.val=c(0,0.4);by.y=0.1;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/2)
+xlim.val=c(0,1.25);by.x=0.5;xmaj=seq(xlim.val[1],xlim.val[2],by.x);xmin=seq(xlim.val[1],xlim.val[2],by.x/2)
+ylim.val=c(0,1.25);by.y=0.5;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/2)
 plot(TN.FWM~TN.GM.flow,H5.TN.annual,xlim=xlim.val,ylim=ylim.val,ann=F,axes=F,type="n",xaxs="i",yaxs="i")
 abline(h=ymaj,v=xmaj,lty=3,col="grey")
 with(H5.TN.annual,points(TN.GM.flow,TN.FWM,pch=21,bg="grey",lwd=0.1))

@@ -253,6 +253,26 @@ $t_{p}$ = 1-tailed t-statistic, significance level $\rho$ and df <br>
 ]
 
 ---
+name: TP
+class: left
+
+### Total Phosphorus
+
+```{r out.width="85%",fig.align="center"}
+knitr::include_graphics('./Plots/TPData.png')
+```
+
+---
+name: TN
+class: left
+
+### Total Nitrogen
+
+```{r out.width="85%",fig.align="center"}
+knitr::include_graphics('./Plots/TNData.png')
+```
+
+---
 name: NNCH5
 class: left
 
@@ -448,6 +468,51 @@ knitr::include_graphics('./Plots/H6_FWMGM.png')
 ```
 
 ]
+
+---
+name: conclusion
+
+### Inital Thoughts
+
+- Structure/canal specific water quality planning limits based on downstream NNC
+
+- Total Nitrogen data limitations
+  + ENRH5 and ENRH3
+  + Alternate sites for Snake Creek, Biscayne Canal, Snapper Creek and Cutler Drain?
+
+
+---
+name: last slide
+class: left
+
+### Acknowledgements
+
+#### Data
+
+```{r ,out.width="8%"}
+knitr::include_graphics("https://www.sfwmd.gov/sites/default/files/documents/sfwmd-seal-hq.png")
+```
+South Florida Water Management District ([DBHYDRO](https://www.sfwmd.gov/science-data/dbhydro))
+
+```{r ,out.width="8%"}
+knitr::include_graphics("https://www.miamidade.gov/global_assets/templates_v6/images/logo.png")
+```
+Miami-Dade Department of Environmental Resources Management via <br> [FDEP STORET/WIN](https://floridadep.gov/dear/watershed-services-program/content/winstoret)
+
+
+#### Slides
+
+* HTML [Slide deck](https://owper-tech.github.io/slides/BBSEER/BBSEER_WQPlanTarget) &copy; Julian (2020) [![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png)](http://creativecommons.org/licenses/by/4.0/)
+
+* RMarkdown [Source](https://github.com/SwampThingPaul/BBSEER_WQ)
+
+
+```{r ,out.width="15%",fig.align="center"}
+knitr::include_graphics("https://floridadep.gov/system/files/styles/general_page_images__scaled_to_900_pixels_/private/media-folders/media-root/in-house-graphic-DEP%20Logo%20color%20Large.png?itok=wm1GoIhx")
+```
+<center><font color="red">Draft FDEP Work Product</font></center>
+
+
 
 
 
