@@ -79,11 +79,11 @@ As acknowledged in the NNC [technical support document](./resources/biscayne_bay
 
 --
 
-WQ is related to land use and differs among North, Central and South regions
+Water Quality is related to land use and differs among North, Central and South regions
 
 --
 
-Nutrient exhibits a declining gradient from land to open water. 
+Nutrients exhibits a declining gradient from land to open water. 
 
 --
 
@@ -527,13 +527,14 @@ Miami-Dade Department of Environmental Resources Management via <br> [FDEP STORE
 
 #### Slides
 
-* HTML [Slide deck](https://owper-tech.github.io/slides/BBSEER/BBSEER_WQPlanTarget) &copy; Julian (2020) [![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png)](http://creativecommons.org/licenses/by/4.0/)
+* Slide deck - [HTML](http://swampthingecology.org/BBSEER_WQ/slides/BBSEER_WQPlanTarget.html) | [PDF](http://swampthingecology.org/BBSEER_WQ/slides/BBSEER_WQPlanTarget.pdf) | &copy; Julian (2020) [![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png)](http://creativecommons.org/licenses/by/4.0/)
 
-* RMarkdown [Source](https://github.com/SwampThingPaul/BBSEER_WQ)
+* RMarkdown [Source](https://github.com/SwampThingPaul/BBSEER_WQ/slides)
 
 <br>
 
-<center>Draft Work Product to support BBSEER</center>
+<center><font color="red">Draft Work Product</font><br>In support of BBSEER planning</center>
+
 
 
 
