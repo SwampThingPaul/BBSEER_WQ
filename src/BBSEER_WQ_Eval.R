@@ -124,6 +124,8 @@ FDEP_AP=spTransform(readOGR(paste0(gen.GIS,"/FDEP"),"AquaticPreserves"),utm17)
 
 bbseer=spTransform(readOGR(GIS.path,"BBSEER_PRJBND_09092020"),utm17)
 
+nnc=spTransform(readOGR(paste0(gen.GIS,"/FDEP"),"Estuary_NNC"),utm17)
+
 # STORET/WIN locs ---------------------------------------------------------
 storet.sites=read.table(paste0(data.path,"BBSEER_WQ_Eval/Station_Results.txt"),sep="|",header=T)
 spl=sapply(strsplit(as.character(storet.sites$Latitude),split="\\s+"),as.numeric)
@@ -145,12 +147,30 @@ win.sites.shp=spTransform(win.sites.shp,utm17)
 plot(win.sites.shp,add=T,pch=21,bg="red")
 plot(storet.sites.shp,add=T,col="white")
 
-
 library(tmap)
 tmap_mode("view")
 
 tm_shape(storet.sites.shp)+tm_dots("red")+
   tm_shape(win.sites.shp)+tm_dots("blue",alpha=0.5)
+
+
+head(storet.sites.shp@data)
+head(win.sites.shp@data)
+
+STORET.locs=cbind(data.frame(Station.ID=storet.sites.shp$Station.ID),coordinates(storet.sites.shp))
+colnames(STORET.locs)=c("Station.ID","UTMX","UTMY")
+WIN.locs=cbind(data.frame(Station.ID=win.sites.shp$Monitoring.Location.ID),coordinates(win.sites.shp))
+colnames(WIN.locs)=c("Station.ID","UTMX","UTMY")
+
+STORET.WIN.locs=rbind(STORET.locs,WIN.locs)
+STORET.WIN.locs[duplicated(STORET.WIN.locs[,1])==F,]
+
+plot(STORET.WIN.locs[duplicated(STORET.WIN.locs[,1])==F,c("UTMX","UTMY")])
+STORET.WIN.locs=STORET.WIN.locs[duplicated(STORET.WIN.locs[,1])==F,]
+STORET.WIN.locs.shp=SpatialPointsDataFrame(STORET.WIN.locs[,c("UTMX","UTMY")],
+                                           data=STORET.WIN.locs,
+                                           proj4string = utm17)
+plot(STORET.WIN.locs.shp)
 # -------------------------------------------------------------------------
 dat.qual=data.frame(QUALIFIER=c(NA,"!","A","D","E","F","I","R","T","U","*","?","B","H","J","K","L","M","N","O","Q","V","Y","Z"),
                     FATALYN=c("N",rep("N",9),rep("Y",14)))
@@ -590,7 +610,7 @@ FLAB.sites=paste0("FLAB",c("07","08","10","11","12","06","09","23","13","04","05
 WQ.dat.all=rbind(subset(wmd.dat.xtab,!(Station.ID%in%FLAB.sites)),
                  wmd.dat2,
                  STORET_WIN)
-
+write.csv(WQ.dat.all,paste0(export.path,"/20230504_BBSEERWQ_data.csv"),row.names = F)
 idvars=c("Station.ID","WY","Date.EST")
 vars=c("TP","SRP","TN","DIN")
 WQ.dat.all=melt(WQ.dat.all[,c(idvars,vars)],id.vars=idvars)
@@ -796,10 +816,10 @@ WY_GM_trend.TN.all.shp=SpatialPointsDataFrame(WY_GM_trend.TN.all[,c("UTMX","UTMY
 par(family="serif",mar=c(0.1,0.1,0.1,0.1),oma=c(1,1,1,1));
 layout(matrix(1:2,1,2),widths=c(1,0.5))
 
-bks=c(0,2,10,20,50,100,150)
+bks=c(0,5,10,25,50,100,150)
 cols.vals=findInterval(mean.WY_FWM_GM.TP.all.shp$mean.GM,bks)
-# cols=viridis::inferno(length(bks))
-cols=wesanderson::wes_palette("Zissou1",length(bks)-1,"continuous")
+cols=viridis::inferno(length(bks)-1,alpha=0.75,direction=-1)
+# cols=wesanderson::wes_palette("Zissou1",length(bks)-1,"continuous")
 
 bbox.lims=bbox(mean.WY_FWM_GM.TP.all.shp)
 plot(shore,col="cornsilk",border="grey",bg="lightblue",
@@ -830,8 +850,8 @@ layout(matrix(1:2,1,2),widths=c(1,0.5))
 
 bks=c(0,2,10,20,50,100,150)
 cols.vals=findInterval(mean.WY_FWM_GM.TP.all.shp$UCI,bks)
-# cols=viridis::inferno(length(bks))
-cols=wesanderson::wes_palette("Zissou1",length(bks)-1,"continuous")
+cols=viridis::inferno(length(bks)-1,alpha=0.75,direction=-1)
+# cols=wesanderson::wes_palette("Zissou1",length(bks)-1,"continuous")
 
 bbox.lims=bbox(mean.WY_FWM_GM.TP.all.shp)
 plot(shore,col="cornsilk",border="grey",bg="lightblue",
@@ -860,8 +880,8 @@ layout(matrix(1:2,1,2),widths=c(1,0.5))
 
 bks=c(0,0.25,0.5,1,2,5)
 cols.vals=findInterval(mean.WY_FWM_GM.TN.all.shp$mean.GM,bks)
-# cols=viridis::inferno(length(bks))
-cols=wesanderson::wes_palette("Zissou1",length(bks)-1,"continuous")
+cols=viridis::inferno(length(bks)-1,alpha=0.75,direction=-1)
+# cols=wesanderson::wes_palette("Zissou1",length(bks)-1,"continuous")
 
 bbox.lims=bbox(mean.WY_FWM_GM.TN.all.shp)
 plot(shore,col="cornsilk",border="grey",bg="lightblue",
@@ -889,8 +909,8 @@ layout(matrix(1:2,1,2),widths=c(1,0.5))
 
 bks=c(0,0.25,0.5,1,2,5)
 cols.vals=findInterval(mean.WY_FWM_GM.TN.all.shp$UCI,bks)
-# cols=viridis::inferno(length(bks))
-cols=wesanderson::wes_palette("Zissou1",length(bks)-1,"continuous")
+cols=viridis::inferno(length(bks)-1,alpha=0.75,direction=-1)
+# cols=wesanderson::wes_palette("Zissou1",length(bks)-1,"continuous")
 
 bbox.lims=bbox(mean.WY_FWM_GM.TN.all.shp)
 plot(shore,col="cornsilk",border="grey",bg="lightblue",
@@ -1020,7 +1040,150 @@ plot(tps.TP.trend)
 plot(WY_GM_trend.TP.all.shp,add=T)
 plot(rasterToContour(tps.TP.trend,levels=c(0.005),nlevels=2),col="yellow",lwd=2,add=T)
 
-
-
-
 plot(GM~WY,subset(WY_FWM_GM.struct,variable=="TP"&SITE2=="S178"))
+
+
+
+# NNC eval ----------------------------------------------------------------
+
+STORET.WIN.locs.shp
+locs.NNC=data.frame(sf::st_intersection(sf::st_as_sf(STORET.WIN.locs.shp),sf::st_as_sf(nnc)))
+
+unique(locs.NNC$ESTUARY)
+subset(nnc,ESTUARY=="Biscayne Bay")@data
+subset(nnc,ESTUARY=="Biscayne Bay")
+
+struct.wq.nnc=merge(struct.wq,locs.NNC[,c("Station.ID","ESTUARY_SE","ESTUARY")],by.x="Station.ID",by.y="Station.ID")
+      
+
+struct.wq.nnc.GM=ddply(subset(struct.wq.nnc,variable%in%c("TN","TP")&screen==1),c("Station.ID","WY","variable","ESTUARY_SE","ESTUARY"),summarise,GM=exp(mean(log(value),na.rm=T)))
+NNC.meanGM=dcast(struct.wq.nnc.GM,ESTUARY_SE+ESTUARY+WY~variable,value.var="GM",mean,na.rm=T)
+
+fill=data.frame(expand.grid(ESTUARY_SE=paste0("ENRH",1:9),
+                 ESTUARY="Biscayne Bay",
+                 WY=seq(2007,2022,1)))
+NNC.meanGM=merge(NNC.meanGM,fill,c("ESTUARY_SE","ESTUARY","WY"),all.y=T)
+
+NNC.meanGM=merge(NNC.meanGM,subset(nnc,ESTUARY=="Biscayne Bay")@data[,c("ESTUARY_SE","TN_CRITERI","TP_CRITERI")],"ESTUARY_SE")
+NNC.meanGM$TP.ann.exceed=with(NNC.meanGM,
+                          ifelse(TP>TP_CRITERI,1,0))
+NNC.meanGM$TP.exceed.3yr=with(NNC.meanGM,ave(TP.ann.exceed,ESTUARY_SE,FUN=function(x) zoo::rollapply(x,3,sum,na.rm=T,align="right",fill=NA)))
+NNC.meanGM$TP.LT.exceed=with(NNC.meanGM,ifelse(TP.exceed.3yr==3,1,0))
+
+NNC.meanGM$TN.ann.exceed=with(NNC.meanGM,
+                          ifelse(TN>TN_CRITERI,1,0))
+NNC.meanGM$TN.exceed.3yr=with(NNC.meanGM,ave(TN.ann.exceed,ESTUARY_SE,FUN=function(x) zoo::rollapply(x,3,sum,na.rm=T,align="right",fill=NA)))
+NNC.meanGM$TN.LT.exceed=with(NNC.meanGM,ifelse(TN.exceed.3yr==3,1,0))
+
+NNC.seg=paste0("ENRH",1:9)
+# png(filename=paste0(plot.path,"BBSEER_WQ_WQSEval.png"),width=8,height=3.5,units="in",res=200,type="windows",bg="white")
+par(family="serif",mar=c(1,1,0.5,0.5),oma=c(3,2.5,0.75,0.25),lwd=0.5);
+layout(matrix(1:18,2,9,byrow = T))
+
+xlim.val=c(2007,2022);by.x=10;xmaj=seq(xlim.val[1],xlim.val[2],by.x);xmin=seq(xlim.val[1],xlim.val[2],by.x/by.x)
+ylim.val=c(0,0.015);by.y=0.005;ymaj=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y);ymin=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y/2)
+for(i in 1:length(NNC.seg)){
+  tmp=subset(NNC.meanGM,ESTUARY_SE==NNC.seg[i])
+  nnc.tmp=subset(nnc@data,ESTUARY_SE==NNC.seg[i])
+  plot(TP~WY,tmp,ylim=ylim.val,xlim=xlim.val,ann=F,axes=F,type="n")
+  abline(h=ymaj,v=xmaj,lty=3,col="grey",lwd=0.5)
+  with(tmp,pt_line(WY,TP,2,"dodgerblue1",1,21,
+                   ifelse(TP.exceed==1,"red","dodgerblue1"),pt.lwd = 0.01,cex=1.25))
+  abline(h=nnc.tmp$TP_CRITERI,lty=2,col="red",lwd=1.5)
+  # text(xlim.val[1]+0.5,nnc.tmp$TP_CRITERI,paste0(nnc.tmp$TP_CRITERI*1000," \u03BCg L\u207B\u00B9"),font=3,pos=3,offset=0.1,col="red")
+  axis_fun(1,xmaj,xmin,NA,line=-0.5)
+  if(i==1){axis_fun(2,ymaj,ymin,format(ymaj*1000));}else{axis_fun(2,ymaj,ymin,NA);}
+  box(lwd=1)
+  if(i==1){mtext(side=2,outer=F,line=2,"Avg. TP GM (\u03BCg L\u207B\u00B9)",cex=0.8)}
+  # mtext(side=1,line=2.6,"WY")
+  # mtext(side=3,adj=0,line=-0.5,paste0(" ",nnc.tmp$SEGMENT_NA,"\n(",nnc.tmp$ESTUARY_SE,")"),cex=0.6,padj=1)
+  mtext(side=3,adj=0,paste0( nnc.tmp$ESTUARY_SE),cex=0.6)
+}
+
+ylim.val=c(0,0.9);by.y=0.3;ymaj=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y);ymin=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y/2)
+for(i in 1:length(NNC.seg)){
+  tmp=subset(NNC.meanGM,ESTUARY_SE==NNC.seg[i])
+  nnc.tmp=subset(nnc@data,ESTUARY_SE==NNC.seg[i])
+  plot(TN~WY,tmp,ylim=ylim.val,xlim=xlim.val,ann=F,axes=F,type="n")
+  abline(h=ymaj,v=xmaj,lty=3,col="grey",lwd=0.5)
+  with(tmp,pt_line(WY,TN,2,"darkolivegreen3",1,21,
+                   ifelse(TN.exceed==1,"red","darkolivegreen3"),pt.lwd = 0.01,cex=1.25))
+  abline(h=nnc.tmp$TN_CRITERI,lty=2,col="red",lwd=1.5)
+  # text(xlim.val[1]+0.75,nnc.tmp$TN_CRITERI,paste0(nnc.tmp$TN_CRITERI," mg L\u207B\u00B9"),font=3,pos=3,offset=0.2,col="red")
+  axis_fun(1,xmaj,xmin,format(xmaj),line=-0.5)
+  if(i==1){axis_fun(2,ymaj,ymin,format(ymaj));}else{axis_fun(2,ymaj,ymin,NA);}
+  box(lwd=1)
+  if(i==1){mtext(side=2,outer=F,line=2,"Avg. TN GM (mg L\u207B\u00B9)",cex=0.8)}
+  if(i==9){mtext(side=1,line=2.6,"WY")}
+  # mtext(side=3,adj=0,line=-1.25,paste0(" ",nnc.tmp$SEGMENT_NA," (",nnc.tmp$ESTUARY_SE,")"),cex=0.75)
+}
+mtext(side=1,line=1,outer=T,"Water Year")
+dev.off()
+
+
+exceed.prop=ddply(NNC.meanGM,"ESTUARY_SE",summarise,
+                  TP.exceed=(sum(TP.LT.exceed,na.rm=T)/N.obs(TP.LT.exceed))*100,
+                  TN.exceed=(sum(TN.LT.exceed,na.rm=T)/N.obs(TN.LT.exceed))*100)
+
+nnc.exceed=merge(subset(nnc,ESTUARY=="Biscayne Bay"),exceed.prop,"ESTUARY_SE")
+
+
+plot(nnc.exceed)
+
+bks=seq(0,100,20)
+cols.vals=findInterval(nnc.exceed$TN.exceed,bks)
+cols=colorRampPalette(c("lightgreen","yellow","indianred"))(length(bks)-1)
+
+plot(nnc.exceed,col=cols[cols.vals])
+
+
+cols.vals=findInterval(nnc.exceed$TP.exceed,bks)
+cols=colorRampPalette(c("lightgreen","yellow","indianred"))(length(bks)-1)
+
+plot(nnc.exceed,col=cols[cols.vals])
+
+
+# png(filename=paste0(plot.path,"BBSEER_WQ_NNCExceed.png"),width=6.5,height=4.5,units="in",res=200,type="windows",bg="white")
+par(family="serif",mar=c(0.1,0.1,0.1,0.1),oma=c(1,1,2,1));
+layout(matrix(1:3,1,3),widths=c(1,1,0.5))
+
+bks=seq(0,100,20)
+cols.vals=findInterval(nnc.exceed$TP.exceed,bks)
+cols=colorRampPalette(c("lightgreen","yellow","indianred"))(length(bks)-1)
+
+bbox.lims=bbox(nnc.exceed)
+plot(shore,col="cornsilk",border="grey",bg="lightblue",
+     ylim=bbox.lims[c(2,4)],xlim=bbox.lims[c(1,3)],lwd=0.1)
+plot(wcas,add=T,col="grey",border=NA)
+plot(enp.shore,add=T,col="grey",border="grey",lwd=0.1)
+plot(ENP,add=T,col=NA,border="white",lty=2,lwd=2)
+plot(canals,add=T,col="lightblue")
+plot(nnc.exceed,col=cols[cols.vals],add=T,lwd=0.1)
+raster::text(nnc.exceed,nnc.exceed$ESTUARY_SE,halo=T,col="red",font=2,cex=0.75)
+plot(bbseer,add=T,border="red",lty=2)
+box(lwd=1)
+mtext(side=3,"Total Phosphorous")
+mapmisc::scaleBar(utm17,"bottomleft",bty="n",cex=0.75,seg.len=4,outer=F);
+
+cols.vals=findInterval(nnc.exceed$TN.exceed,bks)
+cols=colorRampPalette(c("lightgreen","yellow","indianred"))(length(bks)-1)
+
+plot(shore,col="cornsilk",border="grey",bg="lightblue",
+     ylim=bbox.lims[c(2,4)],xlim=bbox.lims[c(1,3)],lwd=0.1)
+plot(wcas,add=T,col="grey",border=NA)
+plot(enp.shore,add=T,col="grey",border="grey",lwd=0.1)
+plot(ENP,add=T,col=NA,border="white",lty=2,lwd=2)
+plot(canals,add=T,col="lightblue")
+plot(nnc.exceed,col=cols[cols.vals],add=T,lwd=0.1)
+raster::text(nnc.exceed,nnc.exceed$ESTUARY_SE,halo=T,col="red",font=2,cex=0.75)
+plot(bbseer,add=T,border="red",lty=2)
+box(lwd=1)
+mtext(side=3,"Total Nitrogen")
+
+plot(0:1,0:1,ann=F,axes=F,type="n")
+leg.fun(format(bks),cols,paste0("Percent NNC Exceedance\n WY",WY(dates[1])," - WY",WY(dates[2])),
+        leg.type="categorical",
+        top.val=0.7,bot.val=0.3,
+        x.max=0.55,x.min=0.40)
+
+dev.off()

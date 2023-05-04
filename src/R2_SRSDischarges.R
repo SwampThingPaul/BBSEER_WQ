@@ -68,7 +68,10 @@ n.alts=length(alts)
 cols.alts=c("grey50","grey50","grey10",wesanderson::wes_palette("Zissou1",4,"continuous"))
 
 dss_out=opendss(paste0(data.path,"Round2_RSMGL/",alts[3],"/RSMGL_output.dss"))
-test=pathsToDataFrame(getCatalogedPathnames(dss_out), simplify=T)
+# test=pathsToDataFrame(getCatalogedPathnames(dss_out), simplify=T)
+test=getCatalogedPathnames(dss_out)
+pathsToDataFrame(dss_out)
+
 subset(test,LOCATION=="S333")
 subset(test,LOCATION=="S200")
 
@@ -816,3 +819,284 @@ axis_fun(2,ymaj,ymin,format(ymaj));box(lwd=1)
 mtext(side=2,outer=F,line=2.5,"Headwater Stage (ft NGVD29)",cex=0.8)
 mtext(side=1,line=2.6,"Proportion of Time \u2265 Stage")
 dev.off()
+
+
+
+
+# -------------------------------------------------------------------------
+
+# C111 ---------------------------------------------------------------------
+
+check.alts.sites=data.frame()
+for(j in 1:n.alts){
+  dss_out=opendss(paste0(data.path,"Round2_RSMGL/",alts[j],"/RSMGL_output.dss"))  
+  test=pathsToDataFrame(getCatalogedPathnames(dss_out), simplify=T)
+  
+  rslt=test[grepl("C111",test$LOCATION),]
+  rslt$Alt=alts[j]
+ 
+  check.alts.sites=rbind(rslt,check.alts.sites)
+  print(j)
+}
+check.alts.sites
+
+check.alts.sites[grepl("C111E_STA",check.alts.sites$LOCATION),]
+check.alts.sites[grepl("C111_STA",check.alts.sites$LOCATION),]
+check.alts.sites[grepl("C111_BYP",check.alts.sites$LOCATION),]
+check.alts.sites[grepl("C111_TO",check.alts.sites$LOCATION),]
+
+RSM.sites=c("C111E_STA_P","C111_STA_P","C111_BYP","C111_TO_C111SC","C111_TO_SG_SC","C111_TO_C111S","S332E","S18C","S197")
+
+subset(check.alts.sites,LOCATION%in%RSM.sites&PARAMETER=="FLOW")
+RSM.sites[RSM.sites%in%unique(check.alts.sites$LOCATION)]
+
+
+C111.q=data.frame()
+for(j in 1:n.alts){
+  dss_out=opendss(paste0(data.path,"Round2_RSMGL/",alts[j],"/RSMGL_output.dss"))  
+  test=pathsToDataFrame(getCatalogedPathnames(dss_out), simplify=T)
+  for(i in 1:length(RSM.sites)){
+    
+    if(nrow(subset(test,LOCATION==RSM.sites[i]))==1){
+      paths=paste0("/RSMGL/",RSM.sites[i],"/FLOW//1DAY/SIMULATED/")  
+      tmp=data.frame(getFullTSC(dss_out,paths))
+      tmp$Date=date.fun(rownames(tmp))
+      rownames(tmp)<-NULL
+      tmp$SITE=RSM.sites[i]
+      tmp$Alt=alts[j]
+      C111.q=rbind(tmp,C111.q)
+      print(i)
+    }else{
+      next
+    }
+  }
+}
+
+unique(C111.q$SITE)
+unique(C111.q$Alt)
+
+C111.q$Q=cfs.to.acftd(C111.q$FLOW)
+C111.q$Alt=factor(C111.q$Alt,levels=alts)
+
+C111.q$CY=as.numeric(format(C111.q$Date,'%Y'))
+C111.q$month=as.numeric(format(C111.q$Date,'%m'))
+C111.q$hydro.season=FL.Hydroseason(C111.q$Date)
+
+
+fill=data.frame(expand.grid(Date=seq(date.fun("1965-01-01"),date.fun("2016-12-31"),"1 days"),
+                            SITE=RSM.sites,
+                            Alt=alts))
+fill$CY=as.numeric(format(fill$Date,'%Y'))
+fill$month=as.numeric(format(fill$Date,'%m'))
+fill$hydro.season=FL.Hydroseason(fill$Date)
+C111.q.fill=merge(C111.q,fill,c("Alt","Date","SITE","CY","month","hydro.season"),all.y=T)
+
+C111.flow.ann=ddply(C111.q.fill,c("Alt","CY","SITE"),summarise,TFlow.kAcftY=sum(Q/1000,na.rm=T))
+C111.flow.ann=dcast(C111.flow.ann,Alt~SITE,value.var="TFlow.kAcftY",mean,na.rm=T)
+
+C111.flow.seasonal=ddply(C111.q.fill,c("Alt","CY","hydro.season","SITE"),summarise,TFlow.kAcftY=sum(Q/1000,na.rm=T))
+C111.flow.seasonal=dcast(C111.flow.seasonal,Alt+SITE~hydro.season,value.var="TFlow.kAcftY",mean,na.rm=T)
+
+C111.flow.month.avg=ddply(C111.q.fill,c("Alt","month","SITE"),summarise,mean.cfs=mean(FLOW,na.rm=T))
+
+
+cols2=c("lightblue","khaki3")
+# for(j in 1:length(RSM.sites)){
+# png(filename=paste0(plot.path,"Round2/",RSM.sites[j],"_ann_month_qdf.png"),width=8,height=3.5,units="in",res=200,type="windows",bg="white")
+par(family="serif",mar=c(1,3,0.5,1),oma=c(3,2,0.75,0.25),lwd=0.5);
+layout(matrix(1:3,1,3))
+
+tmp1=subset(C111.flow.seasonal,SITE==RSM.sites[j])
+if(max(rowSums(tmp1[,3:4],na.rm=T))<100){ylim.val=c(0,100);by.y=25}else{ylim.val=c(0,400);by.y=200}
+ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/2)
+tmp=t(tmp1[,3:4])
+x=barplot(tmp,col=cols2,border="grey",
+          space=0.05,
+          ylim=ylim.val,axes=F,ann=F,
+          names=rep(NA,ncol(tmp)))
+text(x,colSums(tmp),format(round(colSums(tmp),1)),offset=0.1,pos=3,cex=0.75)
+text(x,tmp[1,]+tmp[2,]/2,format(round(tmp[2,],1)),font=3,cex=0.75)
+text(x,tmp[1,]/2,format(round(tmp[1,],1)),font=3,cex=0.75)
+axis_fun(1,x,x,alts,line=-0.5,cex=0.8,las=2)
+axis_fun(2,ymaj,ymin,format(ymaj));
+box(lwd=1)
+mtext(side=3,adj=0,paste0(" ",RSM.sites[j]))
+mtext(side=2,outer=F,line=2.25,"Avg. Annual Discharge Volume (kAcFt Y\u207B\u00B9)",cex=0.8)
+mtext(side=1,outer=F,line=2.6,"Alternatives")
+legend("topright",legend=c("Wet (May - Oct)","Dry (Nov - April)"),
+       lty=c(0),lwd=c(0.1),col="grey",pch=22,pt.bg=cols2,pt.cex=1.25,
+       ncol=1,cex=0.75,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
+
+
+tmp2=subset(C111.flow.month.avg,SITE==RSM.sites[j])
+xlim.val=c(1,12);by.x=2;xmaj=seq(xlim.val[1],xlim.val[2],by.x);xmin=seq(xlim.val[1],xlim.val[2],by.x/by.x)
+if(max(tmp2$mean.cfs,na.rm=T)<300){ylim.val=c(0,300);by.y=100}
+else if(max(tmp2$mean.cfs,na.rm=T)>300&max(tmp2$mean.cfs,na.rm=T)<500){ylim.val=c(0,600);by.y=200}
+else{ylim.val=c(0,1000);by.y=250}
+ymaj=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y);ymin=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y/2)
+plot(0:1,0:1,ylim=ylim.val,xlim=xlim.val,ann=F,axes=F,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+
+with(subset(tmp2,Alt==alts[1]),lines(month,mean.cfs,col=cols.alts[1],lty=1,lwd=1.5))
+with(subset(tmp2,Alt==alts[2]),lines(month,mean.cfs,col=cols.alts[2],lty=2,lwd=1.5))
+with(subset(tmp2,Alt==alts[3]),lines(month,mean.cfs,col=cols.alts[3],lty=1,lwd=1.5))
+for(i in 4:n.alts){
+  with(subset(tmp2,Alt==alts[i]),lines(month,mean.cfs,col=cols.alts[i],lty=1,lwd=1.5))
+}
+axis_fun(1,xmaj,xmin,month.abb[xmaj])
+axis_fun(2,ymaj,ymin,ymaj);box(lwd=1)
+mtext(side=2,outer=F,line=2.25,"Avg. Daily Discharge (ft\u00B3 sec\u207B\u00B9)",cex=0.8)
+mtext(side=1,line=2.6,"Month")
+legend("topleft",legend=c(alts),
+       lty=c(1,2,1,1,1,1,1),lwd=c(1.5),col=c(cols.alts),
+       ncol=1,cex=0.8,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
+
+tmp3=subset(C111.q.fill,SITE==RSM.sites[j])
+xlim.val=c(0,1);by.x=0.2;xmaj=seq(xlim.val[1],xlim.val[2],by.x);xmin=seq(xlim.val[1],xlim.val[2],by.x/2)
+if(max(tmp2$mean.cfs,na.rm=T)<300){ylim.val=c(0,300);by.y=100}
+else if(max(tmp2$mean.cfs,na.rm=T)>300&max(tmp2$mean.cfs,na.rm=T)<500){ylim.val=c(0,600);by.y=200}
+else{ylim.val=c(0,2500);by.y=1000}
+ymaj=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y);ymin=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y/2)
+
+plot(0:1,0:1,ylim=ylim.val,xlim=xlim.val,ann=F,axes=F,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+lty.val=c(1,2,1)
+for(i in 1:3){
+  if(sum(is.na(subset(tmp3,Alt==alts[i])$FLOW))>0){next}
+  tmp=ecdf_fun(subset(tmp3,Alt==alts[i])$FLOW)
+  #tmp$proportion=1-tmp$proportion
+  # tmp$value=exp(tmp$value)
+  with(tmp,lines(1-proportion,value,col=cols.alts[i],lty=lty.val[i],lwd=1.5))
+}
+for(i in 4:n.alts){
+  if(sum(is.na(subset(tmp3,Alt==alts[i])$FLOW))>0){next}
+  with(ecdf_fun(subset(tmp3,Alt==alts[i])$FLOW),lines(1-proportion,value,col=adjustcolor(cols.alts[i],0.5),lwd=2))
+}
+legend("topright",legend=c(alts),
+       lty=c(1,2,1,1,1,1,1),lwd=c(1.5),col=c(cols.alts),
+       ncol=1,cex=0.8,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
+axis_fun(1,xmaj,xmin,format(xmaj))
+axis_fun(2,ymaj,ymin,format(ymaj));box(lwd=1)
+mtext(side=2,outer=F,line=2.5,"Daily Discharge (ft\u00B3 sec\u207B\u00B9)",cex=0.8)
+mtext(side=1,line=2.6,"Proportion of Time \u2265 Discharge")
+dev.off()
+# }
+
+
+
+# Transects ---------------------------------------------------------------
+RSM.sites=c(paste0(c("A1","B1","C2"),"_TRANSECT"))
+
+trans_flow.ol=data.frame()
+for(j in 1:n.alts){
+  dss_out=opendss(paste0(data.path,"Round2_RSMGL/",alts[j],"/transect_flows.dss"))  
+  test=pathsToDataFrame(getCatalogedPathnames(dss_out), simplify=T)
+  for(i in 1:length(RSM.sites)){
+    
+    if(nrow(subset(test,LOCATION==RSM.sites[i]))>0){
+      paths=paste0("/RSMGL/",RSM.sites[i],"/OLFLOW//1DAY/SIMULATED/")  
+      tmp=data.frame(getFullTSC(dss_out,paths))
+      tmp$Date=date.fun(rownames(tmp))
+      rownames(tmp)<-NULL
+      tmp$transect=RSM.sites[i]
+      tmp$Alt=alts[j]
+      trans_flow.ol=rbind(tmp,trans_flow.ol)
+      print(i)
+    }else{
+      next
+    }
+  }
+}
+trans_flow.ol$Alt=factor(trans_flow.ol$Alt,levels=alts)
+trans_flow.ol$month=as.numeric(format(trans_flow.ol$Date,"%m"))
+trans_flow.ol$hydro.season=with(trans_flow.ol,ifelse(month%in%seq(6,10,1),"A_Wet","B_Dry"));# FL.Hydroseason(trans_flow.ol$Date)
+trans_flow.ol$CY=as.numeric(format(trans_flow.ol$Date,"%Y"))
+trans_flow.ol$OLFLOW.kacft=(trans_flow.ol$OLFLOW*2.29569e-5)/1000 ;# no time conversion
+
+trans_flow.ol.ann=ddply(trans_flow.ol,c("Alt","CY","transect"),summarise,TFlow.kAcftY=sum(OLFLOW.kacft,na.rm=T))
+trans_flow.ol.ann=dcast(trans_flow.ol.ann,Alt~transect,value.var="TFlow.kAcftY",mean,na.rm=T)
+
+trans_flow.ol.seasonal=ddply(trans_flow.ol,c("Alt","CY","hydro.season","transect"),summarise,TFlow.kAcftY=sum(OLFLOW.kacft,na.rm=T))
+trans_flow.ol.seasonal=dcast(trans_flow.ol.seasonal,Alt+transect~hydro.season,value.var="TFlow.kAcftY",mean,na.rm=T)
+
+trans_flow.ol.month.avg=ddply(trans_flow.ol,c("Alt","month","transect"),summarise,mean.ft3=mean(OLFLOW,na.rm=T))
+
+
+trans.lab=c("A1","B1","C2")
+cols2=c("lightblue","khaki3")
+for(j in 1:length(RSM.sites)){
+png(filename=paste0(plot.path,"Round2/",RSM.sites[j],"_ann_month_qdf.png"),width=8,height=3.5,units="in",res=200,type="windows",bg="white")
+par(family="serif",mar=c(1,3,0.5,1),oma=c(3,2,0.75,0.25),lwd=0.5);
+layout(matrix(1:3,1,3))
+
+tmp1=subset(trans_flow.ol.seasonal,transect==RSM.sites[j])
+# if(max(rowSums(tmp1[,3:4],na.rm=T))<100){ylim.val=c(0,100);by.y=25}else{ylim.val=c(0,400);by.y=200}
+ylim.val=c(-1,60);by.y=20;ymaj=seq(max(ylim.val[1],0),ylim.val[2],by.y);ymin=seq(max(ylim.val[1],0),ylim.val[2],by.y/2)
+tmp=t(tmp1[,3:4])
+x=barplot(tmp,col=cols2,border="grey",
+          space=0.05,
+          ylim=ylim.val,axes=F,ann=F,
+          names=rep(NA,ncol(tmp)))
+abline(h=0)
+text(x,colSums(tmp),format(round(colSums(tmp),1)),offset=0.1,pos=3,cex=0.75)
+text(x,tmp[1,]+tmp[2,]/2,format(round(tmp[2,],1)),font=3,cex=0.75)
+text(x,tmp[1,]/2,format(round(tmp[1,],1)),font=3,cex=0.75)
+axis_fun(1,x,x,alts,line=-0.5,cex=0.8,las=2)
+axis_fun(2,ymaj,ymin,format(ymaj));
+box(lwd=1)
+mtext(side=3,adj=0,paste0(" Transect ",trans.lab[j]))
+mtext(side=2,outer=F,line=2.25,"Avg. Annual Discharge Volume (kAcFt Y\u207B\u00B9)",cex=0.8)
+mtext(side=1,outer=F,line=2.6,"Alternatives")
+legend("topleft",legend=c("Wet (May - Oct)","Dry (Nov - April)"),
+       lty=c(0),lwd=c(0.1),col="grey",pch=22,pt.bg=cols2,pt.cex=1.25,
+       ncol=1,cex=0.75,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
+
+
+tmp2=subset(trans_flow.ol.month.avg,transect==RSM.sites[j])
+xlim.val=c(1,12);by.x=2;xmaj=seq(xlim.val[1],xlim.val[2],by.x);xmin=seq(xlim.val[1],xlim.val[2],by.x/by.x)
+if(max(tmp2$mean.ft3,na.rm=T)<200){ylim.val=c(0,200);by.y=50}else{ylim.val=c(0,500);by.y=100}
+ylim.val=c(-10,200)*1e5;by.y=5e6;ymaj=c(min(ylim.val),seq(max(c(0,ylim.val[1])),ylim.val[2],by.y));ymin=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y/2)
+plot(0:1,0:1,ylim=ylim.val,xlim=xlim.val,ann=F,axes=F,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+abline(h=0)
+with(subset(tmp2,Alt==alts[1]),lines(month,mean.ft3,col=cols.alts[1],lty=1,lwd=1.5))
+with(subset(tmp2,Alt==alts[2]),lines(month,mean.ft3,col=cols.alts[2],lty=2,lwd=1.5))
+with(subset(tmp2,Alt==alts[3]),lines(month,mean.ft3,col=cols.alts[3],lty=1,lwd=1.5))
+for(i in 4:n.alts){
+  with(subset(tmp2,Alt==alts[i]),lines(month,mean.ft3,col=cols.alts[i],lty=1,lwd=1.5))
+}
+axis_fun(1,xmaj,xmin,month.abb[xmaj])
+axis_fun(2,ymaj,ymin,ymaj/1e5);box(lwd=1)
+mtext(side=2,outer=F,line=2.25,"Avg. Daily Discharge (x10\u2075 ft\u00B3 d\u207B\u00B9)",cex=0.8)
+mtext(side=1,line=2.6,"Month")
+legend("topleft",legend=c(alts),
+       lty=c(1,2,1,1,1,1,1),lwd=c(1.5),col=c(cols.alts),
+       ncol=1,cex=0.8,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
+
+
+tmp3=subset(trans_flow.ol,transect==RSM.sites[j])
+xlim.val=c(0,1);by.x=0.2;xmaj=seq(xlim.val[1],xlim.val[2],by.x);xmin=seq(xlim.val[1],xlim.val[2],by.x/2)
+# if(max(tmp2$mean.cfs,na.rm=T)<300){ylim.val=c(0,300);by.y=100}else{ylim.val=c(0,500);by.y=100}
+# ymaj=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y);ymin=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y/2)
+ylim.val=c(-30,800)*1e5;by.y=1e7;ymaj=c(min(ylim.val),seq(max(c(0,ylim.val[1])),ylim.val[2],by.y));ymin=seq(max(c(0,ylim.val[1])),ylim.val[2],by.y/2)
+plot(0:1,0:1,ylim=ylim.val,xlim=xlim.val,ann=F,axes=F,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+lty.val=c(1,2,1)
+for(i in 1:3){
+  tmp=ecdf_fun(subset(tmp3,Alt==alts[i])$OLFLOW)
+  #tmp$proportion=1-tmp$proportion
+  # tmp$value=exp(tmp$value)
+  with(tmp,lines(1-proportion,value,col=cols.alts[i],lty=lty.val[i],lwd=1.5))
+}
+for(i in 4:n.alts){
+  with(ecdf_fun(subset(tmp3,Alt==alts[i])$OLFLOW),lines(1-proportion,value,col=adjustcolor(cols.alts[i],0.5),lwd=2))
+}
+legend("topright",legend=c(alts),
+       lty=c(1,2,1,1,1,1,1),lwd=c(1.5),col=c(cols.alts),
+       ncol=1,cex=0.8,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
+axis_fun(1,xmaj,xmin,format(xmaj))
+axis_fun(2,ymaj,ymin,format(ymaj/1e5));box(lwd=1)
+mtext(side=2,outer=F,line=2.5,"Daily Discharge (x10\u2075 ft\u00B3 d\u207B\u00B9)",cex=0.8)
+mtext(side=1,line=2.6,"Proportion of Time \u2265 Discharge")
+dev.off()
+}

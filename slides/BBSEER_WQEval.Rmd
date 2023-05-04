@@ -166,7 +166,32 @@ knitr::include_graphics('./WQPlots/BBSEER_WQ_AvgGM_TNTrend.png')
 ```
 
 ---
-name: Trend TN
+name: NNC
+
+### Biscayne Bay NNC
+
+<br>
+
+```{r out.width="100%",fig.align="center"}
+knitr::include_graphics('./WQPlots/BBSEER_WQ_WQSEval.png')
+```
+
+- Numeric Nutrient Citeria based on Estuary Segements outlined in [62-302.532 FAC](https://www.flrules.org/gateway/RuleNo.asp?title=SURFACE%20WATER%20QUALITY%20STANDARDS&ID=62-302.532)
+  - Spatially averaged GM concentration by NNC Segment, not to be exceed 1 in 3 years
+  - Each segment has a specific NNC for TN, TP and Chl-a
+
+---
+name: NNC2
+
+### Biscayne Bay NNC
+
+
+```{r out.width="100%",fig.align="center"}
+knitr::include_graphics('./WQPlots/BBSEER_WQ_NNCExceed.png')
+```
+
+---
+name: summary
 
 ### Summary
 
