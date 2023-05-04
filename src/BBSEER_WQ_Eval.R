@@ -613,6 +613,8 @@ struct.wq$SITE2=with(struct.wq,ifelse(is.na(SITE)==T,Station.ID,SITE))
 struct.wq$type=with(struct.wq,ifelse(is.na(SITE)==T,"ambient","struct"))
 
 
+subset(struct.wq,Station.ID=="S178"&variable=="TP")
+
 ## Structure Data ----------------------------------------------------------
 ## Annual means
 WY_FWM_GM.struct=ddply(subset(struct.wq,screen==1&type=="struct"),c("SITE2","WY","variable"),summarise,
@@ -1017,3 +1019,8 @@ tps.TP.trend=raster::mask(tps,bbseer)
 plot(tps.TP.trend)
 plot(WY_GM_trend.TP.all.shp,add=T)
 plot(rasterToContour(tps.TP.trend,levels=c(0.005),nlevels=2),col="yellow",lwd=2,add=T)
+
+
+
+
+plot(GM~WY,subset(WY_FWM_GM.struct,variable=="TP"&SITE2=="S178"))

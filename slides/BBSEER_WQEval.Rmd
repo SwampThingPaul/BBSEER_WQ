@@ -173,7 +173,6 @@ name: Trend TN
 - High level look at surface water quality by integrating multiple data sets together (>100 monitoring locations used)
 
 - Very little difference in average and upper 95% CI geometric mean TP and TN concentrations (w/ some exceptions)
-  - If mean and UCI deviate, suggests some variability in annual values and could be used to target treatment/basin level actions 
   
 - Significant monotonic changes in TP and TN concentrations were detected
   - 31 locations significantly increases TP concentration (most in coastal region)
