@@ -91,6 +91,7 @@ meshnodes2=merge(meshnodes2,subset(trans.loc,section=="ol"),by.x="nodeid",by.y="
 
 subset(meshnodes2,transect=="T27_ol")
 meshnodes2=meshnodes2[order(meshnodes2$nodeid,meshnodes2$transect),]
+meshnodes2=meshnodes2[order(meshnodes2$transect,meshnodes2$UTMY,meshnodes2$UTMX),]
 
 meshnodes2$dUTMY=with(meshnodes2,ave(UTMY,transect,FUN=function(x)c(0,diff(x))))
 meshnodes2$dUTMX=with(meshnodes2,ave(UTMX,transect,FUN=function(x)c(0,diff(x))))
@@ -118,6 +119,8 @@ subset(chk,geo.valid=="FALSE")
 # writeOGR(sp_lines,paste0(export.path,"GIS"),"TransLines",driver="ESRI Shapefile",overwrite_layer = T)
 
 plot(subset(sp_lines,transect=="T27_ol"))
+plot(subset(sp_lines,transect=="ST01_ol"))
+plot(subset(sp_lines,transect=="ST03_ol"))
 
 # ogrListLayers(paste0(GIS.path.gen,"/AHED_release/20230405/AHED.gdb"))
 # ogrListLayers(paste0(GIS.path.gen,"/AHED_release/AHED_20171102.gdb"))
@@ -142,10 +145,36 @@ plot(subset(sp_lines,grepl("T23",transect)==T),col=c("red","blue","lightgreen"),
 raster::text(subset(trans.mean.center,grepl("T23",transect)==T),"trans.lab",pos=3)
 mapmisc::scaleBar(utm17,"bottomleft",bty="n",cex=0.75,seg.len=4);box(lwd=1)
 dev.off()
+
+
+subset(sp_lines,grepl("T19",transect)==T)
+bbox.lims=bbox(gBuffer(subset(sp_lines,grepl("T19",transect)==T),width=1000))
+plot(shore,col="cornsilk",border="grey",bg="lightblue",ylim=bbox.lims[c(2,4)],xlim=bbox.lims[c(1,3)],lwd=0.1)
+plot(mesh,add=T,border="grey")
+plot(ENP,col=NA,add=T)
+plot(canals,add=T,col="dodgerblue2",lwd=1.5)
+plot(subset(sp_lines,grepl("T19",transect)==T),col=c("red","blue","lightgreen"),add=T,lwd=2)
+
+plot(subset(sp_lines,transect=="ST01_ol"))
+
 # -------------------------------------------------------------------------
-dss_out=opendss(paste0(data.path,"Round2_RSMGL/",alts[3],"/transect_flows.dss"))
-dss_cat=pathsToDataFrame(getCatalogedPathnames(dss_out), simplify=T)
-unique(dss_cat$LOCATION)
+dss.cat.fun=function(x,open.dss.fun=T){
+  dss_out=if(open.dss.fun==T){opendss(x)}else{x}
+  rslt=data.frame(path=getCatalogedPathnames(dss_out))
+  str.val=strsplit(rslt$path,"/")
+  rslt=data.frame(SITE=sapply(str.val,"[",3),TYPE=sapply(str.val,"[",4),
+                  DateVal=sapply(str.val,"[",5))
+  rslt=ddply(rslt,c("SITE","TYPE"),summarise,N.val=N.obs(SITE))
+  return(rslt)
+}
+
+
+
+dss_out=opendss(paste0(data.path,"Round2_RSMGL/",alts[4],"/transect_flows.dss"))
+dss_cat=dss.cat.fun(dss_out,F)
+
+unique(dss_cat$SITE)
+
 subset(dss_cat,LOCATION=="T23A_TRANSECT")
 
 RSM.sites=c(paste0("T23",LETTERS[1:3],"_TRANSECT"))

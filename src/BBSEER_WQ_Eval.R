@@ -610,7 +610,12 @@ FLAB.sites=paste0("FLAB",c("07","08","10","11","12","06","09","23","13","04","05
 WQ.dat.all=rbind(subset(wmd.dat.xtab,!(Station.ID%in%FLAB.sites)),
                  wmd.dat2,
                  STORET_WIN)
-write.csv(WQ.dat.all,paste0(export.path,"/20230504_BBSEERWQ_data.csv"),row.names = F)
+tmp=ddply(WQ.dat.all,"Station.ID",summarise,min.date=min(Date.EST),max.date=max(Date.EST))
+subset(tmp,substr(Station.ID,1,2)=="BI")
+subset(tmp,substr(Station.ID,1,2)=="L3")
+subset(tmp,substr(Station.ID,1,2)=="S2")
+
+# write.csv(WQ.dat.all,paste0(export.path,"/20230504_BBSEERWQ_data.csv"),row.names = F)
 idvars=c("Station.ID","WY","Date.EST")
 vars=c("TP","SRP","TN","DIN")
 WQ.dat.all=melt(WQ.dat.all[,c(idvars,vars)],id.vars=idvars)
@@ -1187,3 +1192,67 @@ leg.fun(format(bks),cols,paste0("Percent NNC Exceedance\n WY",WY(dates[1])," - W
         x.max=0.55,x.min=0.40)
 
 dev.off()
+
+
+
+# Cluster Analysis --------------------------------------------------------
+## See if we can idetifiy WQ regions. 
+# https://www.r-bloggers.com/2021/04/cluster-analysis-in-r/
+
+struct.wq2=ddply(subset(struct.wq,variable%in%c("TN","TP")&screen==1),c("Station.ID","WY","variable"),summarise,GM=exp(mean(log(value),na.rm=T)))
+struct.wq2=dcast(struct.wq2,Station.ID~variable,value.var="GM",mean,na.rm=T)
+
+z <- struct.wq2[,c("TP","TN")]
+means <- apply(z,2,mean,na.rm=T)
+sds <- apply(z,2,sd,na.rm=T)
+nor <- scale(z,center=means,scale=sds)
+
+distance = dist(nor)
+
+mydata.hclust = hclust(distance)
+plot(mydata.hclust)
+plot(mydata.hclust,labels=struct.wq2$Station.ID,main='Default from hclust')
+plot(mydata.hclust,hang=-1, labels=struct.wq2$Station.ID,main='Default from hclust')
+
+mydata.hclust<-hclust(distance,method="average") 
+plot(mydata.hclust,hang=-1) 
+
+member = cutree(mydata.hclust,6)
+table(member)
+member
+
+struct.wq2$clust1=member
+
+boxplot(TP~clust1,struct.wq2)
+boxplot(TN~clust1,struct.wq2)
+
+STORET.WIN.sites2=cbind(data.frame(Station.ID=STORET.WIN.sites@data$Station.ID),coordinates(STORET.WIN.sites))
+colnames(STORET.WIN.sites2)=c("Station.ID","UTMX","UTMY")
+
+colnames(wmd.struct2)=c("Station.ID","UTMX","UTMY")
+
+sites.all=rbind(STORET.WIN.sites2,wmd.struct2)
+struct.wq2=merge(struct.wq2,sites.all,"Station.ID")
+struct.wq2.shp=SpatialPointsDataFrame(struct.wq2[,c("UTMX","UTMY")],
+                                      data=struct.wq2,
+                                      proj4string = utm17)
+
+# png(filename=paste0(plot.path,"BBSEER_WQ_AvgGM_TNTrend.png"),width=6.5,height=4.5,units="in",res=200,type="windows",bg="white")
+par(family="serif",mar=c(0.1,0.1,0.1,0.1),oma=c(1,1,1,1));
+layout(matrix(1:2,1,2),widths=c(1,0.5))
+
+pal2=viridis::cividis(max(member))
+
+bbox.lims=bbox(struct.wq2.shp)
+plot(shore,col="cornsilk",border="grey",bg="lightblue",
+     ylim=bbox.lims[c(2,4)],xlim=bbox.lims[c(1,3)],lwd=0.1)
+plot(wcas,add=T,col="darkseagreen2",border=NA)
+plot(enp.shore,add=T,col="darkseagreen2",border="grey",lwd=0.1)
+plot(ENP,add=T,col=NA,border="white",lty=2,lwd=2)
+plot(subset(FDEP_AP,SHORT_NAME=="Biscayne Bay"),add=T,col=adjustcolor("darkseagreen2",0.5),border="white",lwd=0.5)
+plot(BNP,add=T,col=adjustcolor("darkseagreen2",0.5),border="white",lwd=0.5,lty=2)
+plot(canals,add=T,col="lightblue")
+plot(struct.wq2.shp,pch=21,bg=pal2[as.numeric(struct.wq2.shp$clust1)],cex=0.8,add=T,lwd=0.01)
+plot(bbseer,add=T,border="red",lty=2)
+box(lwd=1)
+mapmisc::scaleBar(utm17,"bottomleft",bty="n",cex=0.75,seg.len=4,outer=F);

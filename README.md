@@ -29,3 +29,5 @@ Paul Julian PhD - [Email](mailto:pjulian@sccf.org)
   target](https://swampthingecology.org/BBSEER_WQ/slides/BBSEER_WQPlanTarget)
 - [BBSEER WQ
   Evalution](https://swampthingecology.org/BBSEER_WQ/slides/BBSEER_WQEval)
+- [BBSEER Round 2 - Load evaluation Part
+  1](https://swampthingecology.org/BBSEER_WQ/slides/BBSEER_WQEval_Struct_Rnd2)
