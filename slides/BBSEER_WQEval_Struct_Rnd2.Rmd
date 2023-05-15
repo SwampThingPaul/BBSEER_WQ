@@ -179,19 +179,30 @@ knitr::include_graphics('./WQPlots_LoadRnd2/advenuture.jpg')
 * By [RSM Transect](#Transect)
 ]
 
-
 ---
 name: structTP
 
+### By Structure - Discharge
+
+```{r out.width="85%",fig.align="center"}
+knitr::include_graphics('./WQPlots_LoadRnd2/WQ_Rnd2_struct_Q.png')
+```
+
+Average annual discharge by structure.  
+
+[Back to the start of adventure](#links)
+
+---
+name: structTP1
+
 ### By Structure - TP
 
-```{r out.width="90%",fig.align="center"}
+```{r out.width="85%",fig.align="center"}
 knitr::include_graphics('./WQPlots_LoadRnd2/WQ_Rnd2_struct_TPLoad.png')
 ```
 
 Average annual TP load by structure using monthly (fixed) TP concentrations
 
-[Back to the start of adventure](#links)
 
 ---
 name: structTP2
@@ -210,7 +221,7 @@ name: structTN
 
 ### By Structure - TN
 
-```{r out.width="90%",fig.align="center"}
+```{r out.width="85%",fig.align="center"}
 knitr::include_graphics('./WQPlots_LoadRnd2/WQ_Rnd2_struct_TNLoad.png')
 ```
 

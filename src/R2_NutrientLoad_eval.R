@@ -117,7 +117,7 @@ struct.wq.list=rbind(
 
 # General North to South order
 RSM.site.order=c("S29", "G58", "S28", "S27", "S26", "S25B", "S25", "G93", "S22", "S700",
-  "S123", "S21", "S703", "S23A-S23B", "S706A", "S706B-S706C", 
+  "S123", "S21", "S21A","S703", "S23A-S23B", "S706A", "S706B-S706C", 
   "S20G", "S708-S23C", "S23D-S23E-S23F", "S20F", "S712A-S712B", 
   "S197")
 
@@ -368,7 +368,7 @@ ann.Q.load=ddply(BBSEER.flow.mon.tot,c("SITE","Alt","CY","ENR","TRANSECT1"),summ
       TFlow.kacftyr=sum(mon.Q.AcFtmon,na.rm=T)/1000,
       TPload.kgyr=sum(TPload.kg,na.rm=T),
       TNload.kgyr=sum(TNload.kg,na.rm=T))
-ann.Q.load=subset(ann.Q.load,SITE!="S21A")
+# ann.Q.load=subset(ann.Q.load,SITE!="S21A")
 ann.Q.load$TP.fwm=with(ann.Q.load,(TPload.kgyr*1e9)/TFlow.Lyr)
 ann.Q.load$TN.fwm=with(ann.Q.load,(TNload.kgyr*1e6)/TFlow.Lyr)
 ann.Q.load$Alt=factor(ann.Q.load$Alt,levels=alts)
@@ -389,12 +389,13 @@ unique(mean.ann.Q.load$SITE)
 RSM.site.order
 unique(ann.Q.load$SITE)
 subset(mean.ann.Q.load,SITE=="S23A-S23B")
+subset(mean.ann.Q.load,SITE=="S21A")
 # png(filename=paste0(plot.path,"WQ_Rnd2_struct_Q.png"),width=8,height=5.5,units="in",res=200,type="windows",bg="white")
 par(family="serif",mar=c(1,1,0.5,0.5),oma=c(4,3,1,0.5),lwd=0.5);
-layout(matrix(c(1:22,23,23),4,6,byrow=T))
+layout(matrix(c(1:24),4,6,byrow=T))
 
 ylim.val=c(0,300);by.y=100;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/2)
-for(i in 1:22){
+for(i in 1:23){
 tmp=subset(mean.ann.Q.load,SITE==RSM.site.order[i])
 x=barplot(tmp$mean.Q.kacft,col=adjustcolor(cols.alts,0.5),
         border=cols.alts,
@@ -402,7 +403,7 @@ x=barplot(tmp$mean.Q.kacft,col=adjustcolor(cols.alts,0.5),
         ylim=ylim.val,axes=F,ann=F)
 text(x,tmp$mean.Q.kacft,format(round(tmp$mean.Q.kacft,1)),pos=3,cex=0.5,offset=0.25)
 if(i%in%c(1,7,13,19)){axis_fun(2,ymaj,ymin,format(ymaj))}else{axis_fun(2,ymaj,ymin,NA)}
-if(i%in%c(17:22)){axis_fun(1,x,x,alts,las=2)}else{axis_fun(1,x,x,NA)}
+if(i%in%c(18:23)){axis_fun(1,x,x,alts,las=2)}else{axis_fun(1,x,x,NA)}
 mtext(side=3,adj=0,line=-1.2,paste0(" ",RSM.site.order[i]),cex=0.7)
 box(lwd=1)
 }
@@ -410,19 +411,19 @@ mtext(side=1,outer=T,line=2.5,"Alternative")
 mtext(side=2,outer=T,line=1.5,"Mean Discharge (x1000 Ac-Ft Yr\u207B\u00B9)")
 
 plot(0:1,0:1,ann=F,axes=F,type="n")
-legend(0.5,0.4,legend=c(alts),
+legend(0.5,0.25,legend=c(alts),
        lty=c(0),lwd=c(0.1),col=c(cols.alts),pch=22,pt.bg=adjustcolor(cols.alts,0.5),
-       ncol=3,cex=1,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
+       ncol=1,cex=1,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
 dev.off()
 
 
 range(mean.ann.Q.load$mean.TPLoad,na.rm=T)
 # png(filename=paste0(plot.path,"WQ_Rnd2_struct_TPLoad.png"),width=8,height=5.5,units="in",res=200,type="windows",bg="white")
 par(family="serif",mar=c(1,1,0.5,0.5),oma=c(4,3.5,1,0.5),lwd=0.5);
-layout(matrix(c(1:22,23,23),4,6,byrow=T))
+layout(matrix(c(1:24),4,6,byrow=T))
 
 ylim.val=c(0,6000);by.y=1000;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/2)
-for(i in 1:22){
+for(i in 1:23){
   tmp=subset(mean.ann.Q.load,SITE==RSM.site.order[i])
   x=barplot(tmp$mean.TPLoad,col=adjustcolor(cols.alts,0.5),
             border=cols.alts,
@@ -430,7 +431,7 @@ for(i in 1:22){
             ylim=ylim.val,axes=F,ann=F)
   text(x,tmp$mean.TPLoad,format(round(tmp$mean.TPLoad,0)),pos=3,cex=0.5,offset=0.25)
   if(i%in%c(1,7,13,19)){axis_fun(2,ymaj,ymin,format(ymaj))}else{axis_fun(2,ymaj,ymin,NA)}
-  if(i%in%c(17:22)){axis_fun(1,x,x,alts,las=2)}else{axis_fun(1,x,x,NA)}
+  if(i%in%c(18:23)){axis_fun(1,x,x,alts,las=2)}else{axis_fun(1,x,x,NA)}
   mtext(side=3,adj=0,line=-1.2,paste0(" ",RSM.site.order[i]),cex=0.7)
   box(lwd=1)
 }
@@ -438,18 +439,18 @@ mtext(side=1,outer=T,line=2.5,"Alternative")
 mtext(side=2,outer=T,line=2,"Mean TP Load (kg Yr\u207B\u00B9)")
 
 plot(0:1,0:1,ann=F,axes=F,type="n")
-legend(0.5,0.4,legend=c(alts),
+legend(0.5,0.25,legend=c(alts),
        lty=c(0),lwd=c(0.1),col=c(cols.alts),pch=22,pt.bg=adjustcolor(cols.alts,0.5),
-       ncol=3,cex=1,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
+       ncol=1,cex=1,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
 dev.off()
 
 range(mean.ann.Q.load$mean.TNLoad,na.rm=T)
 # png(filename=paste0(plot.path,"WQ_Rnd2_struct_TNLoad.png"),width=8,height=5.5,units="in",res=200,type="windows",bg="white")
 par(family="serif",mar=c(1,1,0.5,0.5),oma=c(4,3.5,1,0.5),lwd=0.5);
-layout(matrix(c(1:22,23,23),4,6,byrow=T))
+layout(matrix(c(1:24),4,6,byrow=T))
 
 ylim.val=c(0,60e4);by.y=20e4;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/2)
-for(i in 1:22){
+for(i in 1:23){
   tmp=subset(mean.ann.Q.load,SITE==RSM.site.order[i])
   x=barplot(tmp$mean.TNLoad,col=adjustcolor(cols.alts,0.5),
             border=cols.alts,
@@ -457,7 +458,7 @@ for(i in 1:22){
             ylim=ylim.val,axes=F,ann=F)
   text(x,tmp$mean.TNLoad,format(round(tmp$mean.TNLoad/1e4,0)),pos=3,cex=0.5,offset=0.25)
   if(i%in%c(1,7,13,19)){axis_fun(2,ymaj,ymin,format(ymaj/1e4))}else{axis_fun(2,ymaj,ymin,NA)}
-  if(i%in%c(17:22)){axis_fun(1,x,x,alts,las=2)}else{axis_fun(1,x,x,NA)}
+  if(i%in%c(18:22)){axis_fun(1,x,x,alts,las=2)}else{axis_fun(1,x,x,NA)}
   mtext(side=3,adj=0,line=-1.2,paste0(" ",RSM.site.order[i]),cex=0.7)
   box(lwd=1)
 }
@@ -465,9 +466,9 @@ mtext(side=1,outer=T,line=2.5,"Alternative")
 mtext(side=2,outer=T,line=2,"Mean TN Load (x10\u2074 kg Yr\u207B\u00B9)")
 
 plot(0:1,0:1,ann=F,axes=F,type="n")
-legend(0.5,0.4,legend=c(alts),
+legend(0.5,0.25,legend=c(alts),
        lty=c(0),lwd=c(0.1),col=c(cols.alts),pch=22,pt.bg=adjustcolor(cols.alts,0.5),
-       ncol=3,cex=1,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
+       ncol=1,cex=1,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
 dev.off()
 
 
@@ -499,7 +500,7 @@ tmp2$y.val=nrow(tmp2):1
 # png(filename=paste0(plot.path,"WQ_Rnd2_TPPerDiff_site.png"),width=8,height=5.5,units="in",res=200,type="windows",bg="white")
 par(family="serif",mar=c(1,2,0.5,0.5),oma=c(3,5,1,0.5),lwd=0.5);
 layout(matrix(1:4,1,4))
-ylim.val=c(1,22);by.y=1;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/by.y)
+ylim.val=c(1,23);by.y=1;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/by.y)
 xlim.val=c(-100,100);by.x=50;xmaj=seq(xlim.val[1],xlim.val[2],by.x);xmin=seq(xlim.val[1],xlim.val[2],by.x/2)
 xlim.val2=c(-110,110)
 
@@ -558,7 +559,7 @@ tmp$ALT21[is.infinite(tmp$ALT21)]=0
 # png(filename=paste0(plot.path,"WQ_Rnd2_TNPerDiff_site.png"),width=8,height=5.5,units="in",res=200,type="windows",bg="white")
 par(family="serif",mar=c(1,2,0.5,0.5),oma=c(3,5,1,0.5),lwd=0.5);
 layout(matrix(1:4,1,4))
-ylim.val=c(1,22);by.y=1;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/by.y)
+ylim.val=c(1,23);by.y=1;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/by.y)
 xlim.val=c(-100,100);by.x=50;xmaj=seq(xlim.val[1],xlim.val[2],by.x);xmin=seq(xlim.val[1],xlim.val[2],by.x/2)
 xlim.val2=c(-110,110)
 
@@ -586,7 +587,8 @@ dev.off()
 
 
 # ENR  --------------------------------------------------------------------
-ann.ENR.Q.load=ddply(BBSEER.flow.mon.tot,c("ENR","Alt","CY"),summarise,
+BBSEER.flow.mon.tot2=subset(BBSEER.flow.mon.tot,SITE!="S21A")
+ann.ENR.Q.load=ddply(BBSEER.flow.mon.tot2,c("ENR","Alt","CY"),summarise,
                  TFlow.Lyr=sum(mon.Q.Lmon,na.rm=T),
                  TFlow.kacftyr=sum(mon.Q.AcFtmon,na.rm=T)/1000,
                  TPload.kgyr=sum(TPload.kg,na.rm=T),
