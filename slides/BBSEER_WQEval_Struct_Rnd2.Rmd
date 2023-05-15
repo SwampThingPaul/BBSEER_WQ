@@ -320,7 +320,7 @@ name: summary
 
 * Limited TN data for some location during the selected 10-year period.
 
-* While the average TP concentration was used high within monthly variability at some locations was observed.
+* While the average TP concentration was used, high within monthly variability at some locations was observed.
   * A sensitivity analysis could be conducted similar to approached taken in LOSOM combined with [bootstrapping/monte carlo](https://sccf-tech.github.io/slides/LOSOM/SCCF_iter2_LOSOM_LakeBasinLoad#4) to assess sensitivity to changes in TP concentrations.
   
 * Similar approach could be taken for groundwater flow at transect level if sufficient WQ data is available to represent groundwater quality 
