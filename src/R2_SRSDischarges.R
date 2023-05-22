@@ -59,7 +59,15 @@ poly.step=function(x,y.L, y.U, bg, col = bg, lty = 3, col.adj = 0.25,
   polygon(xx, yy, col = adjustcolor(bg, col.adj), border = col, 
           lty = lty, lwd = lwd)
 }
-
+dss.cat.fun=function(x,open.dss.fun=T){
+  dss_out=if(open.dss.fun==T){opendss(x)}else{x}
+  rslt=data.frame(path=getCatalogedPathnames(dss_out))
+  str.val=strsplit(rslt$path,"/")
+  rslt=data.frame(SITE=sapply(str.val,"[",3),TYPE=sapply(str.val,"[",4),
+                  DateVal=sapply(str.val,"[",5))
+  rslt=ddply(rslt,c("SITE","TYPE"),summarise,N.val=N.obs(SITE))
+  return(rslt)
+}
 
 # -------------------------------------------------------------------------
 alts=c("FWO","FWOi","ECB22",paste0("ALT",c(21,22,23,24)))
@@ -67,24 +75,21 @@ n.alts=length(alts)
 
 cols.alts=c("grey50","grey50","grey10",wesanderson::wes_palette("Zissou1",4,"continuous"))
 
-dss_out=opendss(paste0(data.path,"Round2_RSMGL/",alts[3],"/RSMGL_output.dss"))
+dss_out=opendss(paste0(data.path,"Round2_RSMGL/",alts[4],"/RSMGL_output.dss"))
 # test=pathsToDataFrame(getCatalogedPathnames(dss_out), simplify=T)
-test=getCatalogedPathnames(dss_out)
-pathsToDataFrame(dss_out)
+test=dss.cat.fun(dss_out,F)
 
-subset(test,LOCATION=="S333")
-subset(test,LOCATION=="S200")
+subset(test,SITE=="S333")
+subset(test,SITE=="S200")
+subset(test,SITE=="S631")
+subset(test,SITE=="S333_US")
 
-subset(test,LOCATION=="S631")
+test[grep("200",test$SITE),]
 
-subset(test,LOCATION=="S333_US")
+test[grep("S332",test$SITE),]
+test[grep("S199",test$SITE),]
+test[grep("S200",test$SITE),]
 
-
-
-dss_out=opendss(paste0(data.path,"Round2_RSMGL/",alts[2],"/RSMGL_output.dss"))
-test=pathsToDataFrame(getCatalogedPathnames(dss_out), simplify=T)
-
-test[grep("200",test$LOCATION),]
 
 # SRS ---------------------------------------------------------------------
 RSM.sites=c(paste0("S12",c("A","B","C","D")),"S333","S333N","S334","S355A","S355B","S356","S335",
@@ -1100,3 +1105,47 @@ mtext(side=2,outer=F,line=2.5,"Daily Discharge (x10\u2075 ft\u00B3 d\u207B\u00B9
 mtext(side=1,line=2.6,"Proportion of Time \u2265 Discharge")
 dev.off()
 }
+
+
+
+# C111 Stage values -------------------------------------------------------
+
+dss_out=opendss(paste0(data.path,"Round2_RSMGL/",alts[4],"/RSMGL_output.dss"))
+# test=pathsToDataFrame(getCatalogedPathnames(dss_out), simplify=T)
+
+C111_stg=data.frame()
+for(i in 4:length(alts)){
+test=dss.cat.fun(paste0(data.path,"Round2_RSMGL/",alts[i],"/RSMGL_output.dss"))
+test=subset(test,TYPE=="STAGE")
+
+rslt=rbind(test[grep("S199",test$SITE),],test[grep("S200",test$SITE),],test[grep("S332",test$SITE),])
+rslt$Alt=alts[i]
+rslt=rslt[,c("Alt","SITE")]
+
+C111_stg=rbind(C111_stg,rslt)
+}
+# write.csv(C111_stg,choose.files(),row.names = F); # write a quick csv file to share.
+
+RSM.stage.sites=c("S332_US","S332B_S332BN_HW","S332C_HW","S332D_HW",)
+
+C111.stg.dat=data.frame()
+for(j in 1:n.alts){
+  dss_out=opendss(paste0(data.path,"Round2_RSMGL/",alts[j],"/RSMGL_output.dss"))  
+  test=pathsToDataFrame(getCatalogedPathnames(dss_out), simplify=T)
+  for(i in 1:length(RSM.stage.sites)){
+    
+    if(nrow(subset(test,LOCATION==RSM.stage.sites[i]))==1){
+      paths=paste0("/RSMGL/",RSM.stage.sites[i],"/STAGE//1DAY/SIMULATED/")  
+      tmp=data.frame(getFullTSC(dss_out,paths))
+      tmp$Date=date.fun(rownames(tmp))
+      rownames(tmp)<-NULL
+      tmp$SITE=RSM.stage.sites[i]
+      tmp$Alt=alts[j]
+      C111.stg.dat=rbind(tmp,C111.stg.dat)
+      print(i)
+    }else{
+      next
+    }
+  }
+}
+

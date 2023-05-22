@@ -54,7 +54,8 @@ wgs84=CRS("+init=epsg:4326")
 
 
 # GIS ---------------------------------------------------------------------
-shore=spTransform(readOGR(paste0(gen.GIS,"/SFER_GIS_Geodatabase.gdb"),"SFWMD_Shoreline"),utm17)
+# shore=spTransform(readOGR(paste0(gen.GIS,"/SFER_GIS_Geodatabase.gdb"),"SFWMD_Shoreline"),utm17)
+shore=spTransform(readOGR(paste0(gen.GIS,"/FWC"),"FWC_Shoreline"),utm17)
 canals=spTransform(readOGR(paste0(gen.GIS,"/SFER_GIS_Geodatabase.gdb"),"SFWMD_Canals"),utm17)
 # basins=spTransform(readOGR(paste0(gen.GIS,"/AHED_release/AHED_20171102.gdb"),"WATERSHED"),utm17)
 roads=spTransform(readOGR(paste0(gen.GIS,"/FDOT"),"FDOT_Roads_SFWMDClip"),utm17)
@@ -76,6 +77,8 @@ FDEP_AP=spTransform(readOGR(paste0(gen.GIS,"/FDEP"),"AquaticPreserves"),utm17)
 nnc=spTransform(readOGR(paste0(gen.GIS,"/FDEP"),"Estuary_NNC"),utm17)
 
 trans.lines=spTransform(readOGR(paste0(export.path,"/GIS"),"TransLines"),utm17)
+
+BBCW_L31E=spTransform(readOGR(GIS.path,"BBCW_L31E_wetlands"),utm17)
 
 # plot(crop(wmd.struct,bbseer))
 # -------------------------------------------------------------------------
@@ -915,4 +918,187 @@ for(i in 1:4){
 }
 mtext(side=1,outer=T,line=-1,"TN Load Avg Percent Difference to FWOi")
 mtext(side=2,outer=T,line=2,"Transect")
+dev.off()
+
+
+
+
+# L31E BBCW  --------------------------------------------------------------
+dput(unique(BBSEER.flow.mon.tot$SITE))
+L31E_BBCW_sites=data.frame(SITE=c("S23A-S23B","S706A","S706B-S706C",
+                  "S708-S23C","S23D-S23E-S23F",
+                  "S712A-S712B"),
+                  region=c(rep("BBCW_N",3),rep("BBCW_C",2),"BBCW_S"))
+
+BBSEER.flow.mon.tot=merge(BBSEER.flow.mon.tot,
+                          L31E_BBCW_sites,
+                          "SITE",all.x=T)
+# BBCW_area=data.frame(region=c("BBCW_N","BBCW_C","BBCW_S"),Area.acres=c(693,282,104));# quick from google earth
+# BBCW_area$area.m2=acres.to.m2(BBCW_area$Area.acres)       
+BBCW_area=BBCW_L31E@data
+## double check estimates BBCW_area$area_m2/acres.to.m2(1)
+
+ann.Q.load.BBCW=ddply(subset(BBSEER.flow.mon.tot,is.na(region)==F),c("region","Alt","CY"),summarise,
+                 TFlow.Lyr=sum(mon.Q.Lmon,na.rm=T),
+                 TFlow.kacftyr=sum(mon.Q.AcFtmon,na.rm=T)/1000,
+                 TPload.kgyr=sum(TPload.kg,na.rm=T),
+                 TNload.kgyr=sum(TNload.kg,na.rm=T))
+# ann.Q.load=subset(ann.Q.load,SITE!="S21A")
+ann.Q.load.BBCW$TP.fwm=with(ann.Q.load.BBCW,(TPload.kgyr*1e9)/TFlow.Lyr)
+ann.Q.load.BBCW$TN.fwm=with(ann.Q.load.BBCW,(TNload.kgyr*1e6)/TFlow.Lyr)
+
+ann.Q.load.BBCW$TFlow.m3yr=ann.Q.load.BBCW$TFlow.Lyr*0.001
+ann.Q.load.BBCW=merge(ann.Q.load.BBCW,BBCW_area[,c("region","area_m2")],"region")
+ann.Q.load.BBCW$HLR=with(ann.Q.load.BBCW,TFlow.m3yr/area_m2)
+
+## simple plug and flow
+TP.cstar=2;# ug/L
+# TP.tanks=5
+k.val=6.5;#m/yr; consistent with STA5/6 WY98 - 2023 mean k rate; high k rate high treatment/low k low TP removal
+k.vals=c(k.val/2,k.val,k.val*2)
+
+ann.Q.load.BBCW$Co.k1=with(ann.Q.load.BBCW,TP.cstar+(TP.fwm-TP.cstar)*exp(-(k.vals[1]/HLR)))
+ann.Q.load.BBCW$Co.k2=with(ann.Q.load.BBCW,TP.cstar+(TP.fwm-TP.cstar)*exp(-(k.vals[2]/HLR)))
+ann.Q.load.BBCW$Co.k3=with(ann.Q.load.BBCW,TP.cstar+(TP.fwm-TP.cstar)*exp(-(k.vals[3]/HLR)))
+
+ann.Q.load.BBCW$k1.perdiff=with(ann.Q.load.BBCW,((TP.fwm-Co.k1)/TP.fwm)*100)
+ann.Q.load.BBCW$k2.perdiff=with(ann.Q.load.BBCW,((TP.fwm-Co.k2)/TP.fwm)*100)
+ann.Q.load.BBCW$k3.perdiff=with(ann.Q.load.BBCW,((TP.fwm-Co.k3)/TP.fwm)*100)
+
+
+
+# Ci=50
+# cbs=2
+# k.val=10
+# a.val=5e5
+# Q=130e5
+# HLR.val=Q/a.val
+# #SIMPLE PLUG and FLOW
+# cbs+(Ci-cbs)*exp(-(k.val/HLR.val))
+# TP.tanks=1
+# # TIS
+# cbs+(Ci-cbs)/(1+(k.val/(TP.tanks*HLR.val))^TP.tanks)
+
+
+plot(TP.fwm~CY,subset(ann.Q.load.BBCW,region=="BBCW_N"))
+
+mean.diff=ddply(ann.Q.load.BBCW,c("region","Alt"),summarise,
+                mean.TP=mean(TP.fwm),
+                mean.Co.k1=mean(Co.k1),
+                mean.Co.k2=mean(Co.k2),
+                mean.Co.k3=mean(Co.k3),
+      mean.k1.perdiff=mean(k1.perdiff),
+      mean.k2.perdiff=mean(k2.perdiff),
+      mean.k3.perdiff=mean(k3.perdiff))
+mean.diff$region=factor(mean.diff$region,levels=c("BBCW_N","BBCW_C","BBCW_S"))
+mean.diff$Alt=factor(mean.diff$Alt,levels=alts)
+
+mean.diff=mean.diff[order(mean.diff$region,mean.diff$Alt),]
+
+subset(mean.diff,region=="BBCW_S")
+
+reg.val=c("BBCW_N","BBCW_C","BBCW_S")
+reg.val.labs=c("BBCW North","BBCW Central","BBCW South")
+# png(filename=paste0(plot.path,"BBSEER_WQ_wetland_TPreduct.png"),width=6.5,height=4,units="in",res=200,type="windows",bg="white")
+par(family="serif",mar=c(1,2,0.5,0.5),oma=c(3,2.5,0.75,0.25),lwd=0.5);
+layout(matrix(1:3,3,1,byrow = T))
+
+ylim.val=c(0,100);by.y=20;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/2)
+cols=viridis::inferno(3,alpha=0.5,direction=-1)
+for(i in 1:3){
+tmp=t(subset(mean.diff,region==reg.val[i])[,c("mean.k1.perdiff","mean.k2.perdiff","mean.k3.perdiff")])
+x=barplot(tmp,beside=T,col=cols,ylim=ylim.val,axes=F,names.arg=rep(NA,length(alts)))
+with(subset(mean.diff,region==reg.val[i]),text(x[1,],mean.k1.perdiff,round(mean.k1.perdiff,0),pos=3))
+with(subset(mean.diff,region==reg.val[i]),text(x[2,],mean.k2.perdiff,round(mean.k2.perdiff,0),pos=3))
+with(subset(mean.diff,region==reg.val[i]),text(x[3,],mean.k3.perdiff,round(mean.k3.perdiff,0),pos=3))
+if(i==3){axis_fun(1,x[2,],x[2,],alts,line=-0.5)}else{axis_fun(1,x[2,],x[2,],NA,line=-0.5)}
+axis_fun(2,ymaj,ymin,ymaj);box(lwd=1)
+mtext(side=3,line=-1.25,adj=0,paste0(" ",reg.val.labs[i]))
+if(i==1){
+  legend("topright",legend=paste0("Plug-Flow k value: ",format(k.vals)," m yr\u207B\u00B9"),
+       pch=c(22),lty=0,lwd=c(0.1),
+       pt.bg=cols,col="black",
+       pt.cex=1.25,ncol=1,cex=0.8,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
+}
+}
+# mtext(side=2,outer=T,line=1,"TP FWM \u0078\u0304 \u0394 - Inflow to Outflow (%)")
+# mtext(side=2,outer=T,line=1,"TP FWM Mean Change - Inflow to Outflow (%)")
+mtext(side=2,outer=T,line=1,"TP FWM Percent Reduction (%)")
+mtext(side=1,line=2,"Alternatives")
+dev.off()
+
+# png(filename=paste0(plot.path,"BBSEER_WQ_wetland_TPCon.png"),width=6.5,height=4,units="in",res=200,type="windows",bg="white")
+par(family="serif",mar=c(1,2,0.5,0.5),oma=c(3,2.5,0.75,0.25),lwd=0.5);
+layout(matrix(1:3,3,1,byrow = T))
+
+ylim.val=c(0,20);by.y=5;ymaj=seq(ylim.val[1],ylim.val[2],by.y);ymin=seq(ylim.val[1],ylim.val[2],by.y/2)
+cols=c(adjustcolor(c("dodgerblue1"),0.5),viridis::inferno(3,alpha=0.5,direction=-1))
+for(i in 1:3){
+  tmp=t(subset(mean.diff,region==reg.val[i])[,c("mean.TP", "mean.Co.k1", "mean.Co.k2", "mean.Co.k3")])
+  x=barplot(tmp,beside=T,col=cols,ylim=ylim.val,axes=F,names.arg=rep(NA,length(alts)))
+  with(subset(mean.diff,region==reg.val[i]),text(x[1,],mean.TP,round(mean.TP,0),pos=3))
+  with(subset(mean.diff,region==reg.val[i]),text(x[2,],mean.Co.k1,round(mean.Co.k1,0),pos=3))
+  with(subset(mean.diff,region==reg.val[i]),text(x[3,],mean.Co.k2,round(mean.Co.k2,0),pos=3))
+  with(subset(mean.diff,region==reg.val[i]),text(x[4,],mean.Co.k3,round(mean.Co.k3,0),pos=3))
+  if(i==3){axis_fun(1,x[2,],x[2,],alts,line=-0.5)}else{axis_fun(1,x[2,],x[2,],NA,line=-0.5)}
+  axis_fun(2,ymaj,ymin,ymaj);box(lwd=1)
+  mtext(side=3,line=-1.25,adj=0,paste0(" ",reg.val.labs[i]))
+  if(i==1){
+    legend("topright",legend=c("Inflow TP FWM",paste0("Outflow TP w/ k value: ",format(k.vals)," m yr\u207B\u00B9")),
+           pch=c(22),lty=0,lwd=c(0.1),
+           pt.bg=cols,col="black",
+           pt.cex=1.25,ncol=1,cex=0.8,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5)
+  }
+}
+mtext(side=2,outer=T,line=1,"Mean TP FWM (\u03BCg L\u207B\u00B9)")
+mtext(side=1,line=2,"Alternatives")
+dev.off()
+
+
+# png(filename=paste0(plot.path,"WQ_BBSEER_BBCWL31E.png"),width=6.5,height=4.5,units="in",res=200,type="windows",bg="white")
+par(family="serif",mar=c(0.1,0.1,0.1,0.1),oma=c(0.5,0.5,0.5,0.5));
+layout(matrix(c(1,1,2:3),2,2),widths=c(1,0.75),heights=c(1,0.5))
+
+bbox.lims=bbox(BBCW_L31E)
+plot(shore,col="cornsilk",border="grey",bg="lightblue",
+     ylim=bbox.lims[c(2,4)],xlim=bbox.lims[c(1,3)],lwd=0.1)
+plot(wcas,add=T,col="darkseagreen2",border=NA)
+plot(BBCW_L31E,add=T,col=adjustcolor("darkseagreen2",0.5))
+plot(canals,add=T,col="lightblue")
+plot(bbseer,add=T,border="red",lty=2)
+# plot(nnc,add=T,lty=2)
+# plot(subset(nnc,ESTUARY_SE%in%paste0("ENRH",c(5,9,3,6,2))),add=T,col="grey80",border="white",lty=2)
+# raster::text(subset(nnc,ESTUARY_SE%in%paste0("ENRH",c(5,9,3,6,2))),subset(nnc,ESTUARY_SE%in%paste0("ENRH",c(5,9,3,6,2)))$ESTUARY_SE,halo=T,col="red",font=2,cex=0.75,pos=4)
+plot(subset(bbseer.rnd2.struct,Structure %in%RSM.site.order),add=T,pch=21,bg="red",lwd=0.1)
+raster::text(subset(bbseer.rnd2.struct,Structure%in%L31E_BBCW_sites$SITE),
+             subset(bbseer.rnd2.struct,Structure%in%L31E_BBCW_sites$SITE)$Structure,
+             pos=2,halo=T,cex=0.5,offset=0.1)
+plot(subset(wmd.struct,NAME%in%c(RSM.site.order,paste0("S23",LETTERS[1:6]))),add=T,pch=21,bg="dodgerblue1",lwd=0.1)
+raster::text(BBCW_L31E,c("BBCW North","BBCW Central","BBCW South"),halo=T,font=3,cex=0.5,srt=45)
+box(lwd=1)
+mapmisc::scaleBar(utm17,"bottomright",bty="n",cex=0.75,seg.len=4,outer=F);
+
+est.AOI=raster::extent(BBCW_L31E)
+est.AOI.poly=as(est.AOI,"SpatialPolygons")
+proj4string(est.AOI.poly)=utm17
+
+bbox.lims=bbox(bbseer)
+plot(shore,col="cornsilk",border="grey",bg="lightblue",
+     ylim=bbox.lims[c(2,4)],xlim=bbox.lims[c(1,3)],lwd=0.1)
+plot(wcas,add=T,col="grey",border=NA)
+plot(enp.shore,add=T,col="grey",border="grey",lwd=0.1)
+plot(ENP,add=T,col=NA,border="white",lty=2,lwd=2)
+plot(subset(FDEP_AP,SHORT_NAME=="Biscayne Bay"),add=T,col=adjustcolor("grey",0.5),border="white",lwd=0.5)
+plot(BNP,add=T,col=adjustcolor("grey",0.5),border="white",lwd=0.5,lty=2)
+plot(canals,add=T,col="lightblue")
+plot(bbseer,add=T,border="red",lty=2)
+plot(est.AOI.poly,add=T,col=adjustcolor("red",0.5),border="red")
+box(lwd=1)
+
+plot(0:1,0:1,ann=F,axes=F,type="n")
+legend("center",legend=c("Existing Structures","BBSEER Round 2 Structures","BBCW L31E Wetlands"),
+       lty=c(0),lwd=c(0.1),col="black",
+       pch=c(rep(21,2),22),pt.bg=c("dodgerblue1","red",adjustcolor("darkseagreen2",0.5)),pt.cex=1.5,
+       ncol=1,cex=0.75,bty="n",y.intersp=1,x.intersp=0.75,xpd=NA,xjust=0.5,yjust=0.5,
+       title.adj = 0,title="Coastal Water\nControl Structures\n(to Biscayne Bay)")
 dev.off()

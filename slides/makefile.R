@@ -6,3 +6,4 @@
 Sys.setenv(PAGEDOWN_CHROME="C:/Program Files/Google/Chrome/Application/chrome.exe")
 # pagedown::chrome_print("./slides/BBSEER_WQEval.Rmd")
 # pagedown::chrome_print("./slides/BBSEER_WQEval_Struct_Rnd2.Rmd")
+# pagedown::chrome_print("./slides/BBSEER_WQEval_GW_BBCWRnd2.Rmd")
